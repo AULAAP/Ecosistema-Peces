@@ -1,0 +1,47 @@
+import { useState, useEffect, useRef } from 'react';
+
+function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
+  // Estado para almacenar nuestro valor
+  // Pasamos una función de inicialización a useState para que solo se ejecute una vez
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return initialValue;
+    }
+    try {
+      const item = window.localStorage.getItem(key);
+      // Parsear el json almacenado o devolver initialValue si no existe
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(`Error al leer la clave de localStorage “${key}”:`, error);
+      return initialValue;
+    }
+  });
+
+  // Ref para evitar guardar el valor inicial innecesariamente en el primer render
+  const firstRender = useRef(true);
+
+  // useEffect para persistir el valor en localStorage cada vez que cambie
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(key, JSON.stringify(storedValue));
+      }
+    } catch (error) {
+      console.error(`Error al guardar en localStorage la clave “${key}”:`, error);
+    }
+  }, [key, storedValue]);
+
+  // Devolvemos una versión envuelta de la función setter de useState que admite funciones de actualización
+  const setValue = (value: T | ((val: T) => T)) => {
+    setStoredValue(value);
+  };
+
+  return [storedValue, setValue];
+}
+
+export default useLocalStorage;
