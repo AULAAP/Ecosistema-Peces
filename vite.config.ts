@@ -1,27 +1,5 @@
-import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    return {
-      server: {
-        port: 3000,
-        host: '0.0.0.0',
-      },
-      plugins: [
-        react(),
-        tailwindcss(),
-      ],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-        }
-      }
-    };
-});
+{
+  "name": "Capacitación para Líderes de Escuela Dominical",
+  "description": "Una aplicación para generar un plan de desarrollo semanal para líderes de escuela dominical. Los usuarios suben su documento de programa y la aplicación recomienda videos de YouTube y preguntas de discusión para cada tema clave.",
+  "requestFramePermissions": []
+}
