@@ -1,64 +1,66 @@
-
-/* --- FILE: constants.tsx --- */
-import { ChurchLeader, Meeting, TrainingTopic } from './types';
-
-export const INITIAL_MEETINGS: Meeting[] = [];
-export const INITIAL_CHURCHES: ChurchLeader[] = [];
-export const ZONES = [
-  'Santo Domingo Norte',
-  'Santo Domingo Este',
-  'Distrito Nacional',
-  'Zona Norte',
-  'Zona Sur',
-  'Zona Este'
-];
-
-export const INITIAL_WEEKLY_PLANS = [
-  {
-    weekNumber: 1,
-    id: '1',
-    title: 'Fundamentos del Crecimiento',
-    description: 'Estrategias básicas para la expansión del reino en comunidades locales.',
-    isCompleted: false,
-    topics: ['Visión 2026', 'Discipulado 1 a 1', 'Grupos Pequeños'],
-    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    date: '2026-03-10',
-    topic: 'Fundamentos del Crecimiento',
-    videoTitle: 'Fundamentos del Crecimiento',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    question: '¿Qué es lo más importante?',
-    lessonObjective: 'Entender los fundamentos.'
+{
+  "entities": {
+    "ChurchLeader": {
+      "title": "ChurchLeader",
+      "description": "A leader of a church in a specific zone.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "email": { "type": "string" },
+        "churchName": { "type": "string" },
+        "community": { "type": "string" },
+        "zone": { "type": "string" },
+        "meetingId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pendiente", "enviado", "error"] },
+        "booksCount": { "type": "number" },
+        "responsibleEntity": { "type": "string" },
+        "lastContactDate": { "type": "string", "format": "date-time" },
+        "suggestedVenue": { "type": "string" }
+      },
+      "required": ["id", "fullName", "whatsapp", "churchName", "zone", "meetingId", "status"]
+    },
+    "Meeting": {
+      "title": "Meeting",
+      "description": "A meeting or group gathering.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "venue": { "type": "string" },
+        "zone": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "name", "zone"]
+    },
+    "GroupConfig": {
+      "title": "GroupConfig",
+      "description": "Logistics configuration for a specific group (zone + meeting).",
+      "type": "object",
+      "properties": {
+        "venue": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "template": { "type": "string" },
+        "lastIndex": { "type": "number" }
+      }
+    }
   },
-  {
-    weekNumber: 2,
-    id: '2',
-    title: 'Liderazgo Territorial',
-    description: 'Cómo gestionar múltiples iglesias y líderes de zona.',
-    isCompleted: false,
-    topics: ['Gestión de Crisis', 'Mentoreo de Pastores', 'Logística de Eventos'],
-    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    date: '2026-03-17',
-    topic: 'Liderazgo Territorial',
-    videoTitle: 'Liderazgo Territorial',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    question: '¿Cómo lideras?',
-    lessonObjective: 'Desarrollar liderazgo.'
+  "firestore": {
+    "/churches/{churchId}": {
+      "schema": "ChurchLeader",
+      "description": "Collection of church leaders."
+    },
+    "/meetings/{meetingId}": {
+      "schema": "Meeting",
+      "description": "Collection of meetings."
+    },
+    "/groupConfigs/{configId}": {
+      "schema": "GroupConfig",
+      "description": "Collection of group logistics configurations."
+    }
   }
-];
-
-export const TRAINING_TOPICS: TrainingTopic[] = [
-  {
-    id: 't1',
-    title: 'El ADN del Líder',
-    content: 'Exploramos las cualidades espirituales y emocionales de un líder efectivo.',
-    category: 'liderazgo',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-  },
-  {
-    id: 't2',
-    title: 'Metodología de Peces',
-    content: 'Paso a paso de cómo implementar el sistema de pesca en tu zona.',
-    category: 'metodologia',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-  }
-];
+}

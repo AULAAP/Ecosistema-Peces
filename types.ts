@@ -1,33 +1,77 @@
-{
-  "name": "ecosistema-peces",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "tsc --noEmit",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@google/genai": "^1.40.0",
-    "@tailwindcss/vite": "^4.2.1",
-    "firebase": "^12.10.0",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^4.2.0",
-    "lucide-react": "^0.563.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "recharts": "^3.7.0",
-    "tailwindcss": "^4.2.1",
-    "xlsx": "0.18.5"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
-  }
+
+/* --- FILE: types.ts --- */
+export enum ContactStatus {
+  PENDING = 'pendiente',
+  SENT = 'enviado',
+  FAILED = 'error'
+}
+
+export interface Meeting {
+  id: string;
+  name: string;
+  date: string;
+  time: string;
+  venue: string;
+  coordinates?: string;
+  zone: string;
+  description?: string;
+}
+
+export interface ChurchLeader {
+  id: string;
+  fullName: string;
+  whatsapp: string;
+  email: string;
+  churchName: string;
+  community: string;
+  zone: string;
+  meetingId: string;
+  status: ContactStatus;
+  booksCount: number;
+  responsibleEntity: string;
+  lastContactDate?: string;
+  suggestedVenue?: string; // Nueva propiedad para la sede del Excel
+}
+
+export interface ZoneStats {
+  zone: string;
+  churchCount: number;
+}
+
+export type ViewType = 'dashboard' | 'churches' | 'meetings' | 'whatsapp' | 'meeting-detail' | 'capacitacion' | 'capacitacion-b' | 'aulaapp' | 'clusters' | 'churches-training' | 'plan' | 'progress-training' | 'dashboard-training';
+
+export interface WeeklyPlan {
+    id: string;
+    title: string;
+    description: string;
+    isCompleted: boolean;
+    topics: string[];
+    youtubeUrl: string;
+    date: string;
+    weekNumber: number;
+    // Legacy mapping for TopicCard and other components
+    topic: string;
+    videoTitle: string;
+    videoUrl: string;
+    question: string;
+    lessonObjective: string;
+}
+
+export interface TrainingTopic {
+    id: string;
+    title: string;
+    content: string;
+    category: 'liderazgo' | 'metodologia' | 'crecimiento';
+    videoUrl: string;
+}
+
+export interface TrainingChurch {
+    id: number;
+    name: string;
+}
+
+export interface Cluster {
+    id: number;
+    name: string;
+    churchIds: number[];
 }
