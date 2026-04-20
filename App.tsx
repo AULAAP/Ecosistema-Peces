@@ -112,6 +112,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const [cloudCount, setCloudCount] = useState({ churches: 0, meetings: 0 });
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
@@ -540,6 +541,18 @@ const App: React.FC = () => {
     setCurrentView('dashboard');
     setActiveGroup(null);
     setSelectedChurch(undefined);
+  };
+
+  const handleLogin = async () => {
+    if (isSigningIn) return;
+    setIsSigningIn(true);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Login failed", error);
+    } finally {
+      setIsSigningIn(false);
+    }
   };
 
   const handlePushToCloud = async () => {
@@ -1254,10 +1267,12 @@ const App: React.FC = () => {
               </div>
             ) : (
               <button 
-                onClick={signInWithGoogle}
-                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
+                onClick={handleLogin}
+                disabled={isSigningIn}
+                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ShieldCheck className="w-4 h-4 text-blue-600" /> Iniciar Sesión Cloud
+                {isSigningIn ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <ShieldCheck className="w-4 h-4 text-blue-600" />}
+                {isSigningIn ? 'Iniciando...' : 'Iniciar Sesión Cloud'}
               </button>
             )}
           </div>

@@ -15,9 +15,9 @@ const TrainingModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'plans' | 'topics'>('plans');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const togglePlanCompletion = (id: string) => {
+  const togglePlanCompletion = (weekNumber: number) => {
     setPlans(prev => prev.map(p => 
-      p.id === id ? { ...p, isCompleted: !p.isCompleted } : p
+      p.weekNumber === weekNumber ? { ...p, isCompleted: !p.isCompleted } : p
     ));
   };
 
@@ -133,7 +133,7 @@ const TrainingModule: React.FC = () => {
                     <Calendar className="w-6 h-6" />
                   </div>
                   <button 
-                    onClick={() => togglePlanCompletion(plan.id)}
+                    onClick={() => togglePlanCompletion(plan.weekNumber!)}
                     className={`p-2 rounded-xl transition-all ${plan.isCompleted ? 'text-emerald-600 bg-emerald-50' : 'text-slate-300 hover:text-blue-600 hover:bg-blue-50'}`}
                   >
                     {plan.isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}

@@ -26,8 +26,18 @@ export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error signing in with Google", error);
+    
+    if (error.code === 'auth/popup-blocked') {
+      alert("El navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes para este sitio o intenta abrir la aplicación en una pestaña nueva.");
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      // Often happens if the user clicks login twice quickly
+      console.warn("Se canceló la solicitud de ventana emergente previa.");
+    } else {
+      alert("Error al iniciar sesión: " + (error.message || "Error desconocido"));
+    }
+    
     throw error;
   }
 };
