@@ -13,11 +13,11 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@google/genai": "^0.21.0",
+    "@google/genai": "^1.40.0",
     "@tailwindcss/vite": "^4.0.0",
     "firebase": "^11.3.1",
     "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.2",
+    "jspdf": "2.5.2",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
