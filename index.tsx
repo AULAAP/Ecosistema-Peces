@@ -1,37 +1,10 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isAuthenticated() && 
-             (request.auth.token.email == "ramonalduey@gmail.com" || 
-              request.auth.uid == "VB4dzPmCjaSySSzqSHp5VbDHDZw2");
-    }
-
-    // Specific collection rules
-    match /churches/{churchId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /meetings/{meetingId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /groupConfigs/{configId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /settings/{settingId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    // Global admin access
-    match /{document=**} {
-      allow read, write: if isAdmin();
-    }
-  }
+{
+  "projectId": "gen-lang-client-0683752644",
+  "appId": "1:839012823168:web:d957c985ca9de2e76e7665",
+  "apiKey": "AIzaSyDZTMrHc--J9oeqpBbe0FyBW45bdvv3J2Q",
+  "authDomain": "gen-lang-client-0683752644.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-c35c8730-2fb1-4a4b-af47-497d417cb809",
+  "storageBucket": "gen-lang-client-0683752644.firebasestorage.app",
+  "messagingSenderId": "839012823168",
+  "measurementId": ""
 }

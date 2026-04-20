@@ -1,104 +1,184 @@
+import React, { useState } from 'react';
+import { Church, Plus, Trash2, RotateCcw, Youtube, Info } from 'lucide-react';
+import type { TrainingChurch, ContactStatus } from '../types';
 
-/* --- FILE: components/Dashboard.tsx --- */
-import React, { useMemo, useState } from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell 
-} from 'recharts';
-import { ChurchLeader, Meeting, ContactStatus } from '../types';
-import { Users, MapPin, Calendar, CheckCircle, Clock, LayoutGrid, BookOpen } from 'lucide-react';
-
-interface Props {
-  churches: ChurchLeader[];
-  meetings: Meeting[];
+interface ChurchesPanelProps {
+    churches: TrainingChurch[];
+    selectedChurchId?: number;
+    onSelectChurch: (church: TrainingChurch) => void;
+    onSelectClusterPlan: () => void;
+    onAddChurch: (name: string) => void;
+    onDeleteChurch: (churchId: number) => void;
+    onResetChurchProgress: (churchId: number) => void;
+    totalPlanCount: number;
+    progressData: Record<number, Record<number, boolean>>;
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const ChurchesPanel: React.FC<ChurchesPanelProps> = ({ 
+    churches, 
+    selectedChurchId, 
+    onSelectChurch, 
+    onSelectClusterPlan,
+    onAddChurch, 
+    onDeleteChurch, 
+    onResetChurchProgress, 
+    totalPlanCount, 
+    progressData 
+}) => {
+    const [isAdding, setIsAdding] = useState(false);
+    const [newName, setNewName] = useState('');
 
-const Dashboard: React.FC<Props> = ({ churches, meetings }) => {
-  const [selectedZone, setSelectedZone] = useState<string>('Todas');
-
-  const dynamicZones = useMemo(() => {
-    const zones = Array.from(new Set(churches.map(c => c.zone))).filter(Boolean) as string[];
-    return zones.sort();
-  }, [churches]);
-
-  const stats = useMemo(() => {
-    const filtered = selectedZone === 'Todas' ? churches : churches.filter(c => c.zone === selectedZone);
-    const sentCount = filtered.filter(c => c.status === ContactStatus.SENT).length;
-    const pendingCount = filtered.filter(c => c.status === ContactStatus.PENDING).length;
-    const totalBooks = filtered.reduce((acc, curr) => acc + (curr.booksCount || 0), 0);
-    const zoneData: Record<string, { name: string, churches: number, books: number }> = {};
-    churches.forEach(c => {
-      if (!zoneData[c.zone]) zoneData[c.zone] = { name: c.zone, churches: 0, books: 0 };
-      zoneData[c.zone].churches += 1;
-      zoneData[c.zone].books += (c.booksCount || 0);
-    });
-    return {
-      totalChurches: filtered.length,
-      totalMeetings: new Set(filtered.map(c => c.meetingId)).size,
-      totalBooks,
-      sentCount,
-      pendingCount,
-      zoneChartData: Object.values(zoneData).sort((a, b) => b.churches - a.churches),
-      statusChartData: [{ name: 'Enviados', value: sentCount }, { name: 'Pendientes', value: pendingCount }]
+    const handleAddSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newName.trim()) {
+            onAddChurch(newName.trim());
+            setNewName('');
+            setIsAdding(false);
+        }
     };
-  }, [churches, selectedZone]);
 
-  if (churches.length === 0) return (
-    <div className="h-[70vh] flex flex-col items-center justify-center text-center p-10 bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
-      <LayoutGrid className="w-16 h-16 text-blue-100 mb-6" />
-      <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Panel Vacío</h2>
-      <p className="text-slate-400 font-bold max-w-sm">Importa registros para visualizar las métricas.</p>
-    </div>
-  );
+    const getChurchProgress = (churchId: number) => {
+        const churchProgress = progressData[churchId] || {};
+        const completedCount = Object.keys(churchProgress).length;
+        const percentage = totalPlanCount > 0 ? (completedCount / totalPlanCount) * 100 : 0;
+        return { completed: completedCount, percentage };
+    };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase">Vista Territorial</h2>
-        <div className="flex gap-2 overflow-x-auto max-w-md p-1 bg-white rounded-2xl border">
-          <button onClick={() => setSelectedZone('Todas')} className={`px-4 py-2 text-[9px] font-black rounded-xl uppercase transition-all ${selectedZone === 'Todas' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>Todas</button>
-          {dynamicZones.map(z => (<button key={z} onClick={() => setSelectedZone(z)} className={`px-4 py-2 text-[9px] font-black rounded-xl uppercase transition-all ${selectedZone === z ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{z}</button>))}
+    return (
+        <div className="bg-white/80 backdrop-blur-md rounded-[3rem] shadow-2xl p-10 border border-white/60 max-w-4xl mx-auto relative animate-in fade-in duration-700">
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 pb-8 border-b border-slate-100 gap-6">
+                <div>
+                    <h3 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Iglesias del Clúster</h3>
+                    <p className="text-slate-500 font-medium">Gestiona y monitorea cada congregación de la zona</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        onClick={onSelectClusterPlan}
+                        className="flex items-center gap-2 px-6 py-3 text-xs font-black uppercase tracking-widest text-white bg-gradient-to-r from-teal-500 to-emerald-600 rounded-2xl hover:from-teal-400 hover:to-emerald-500 transition-all shadow-xl shadow-emerald-500/20 active:scale-95"
+                    >
+                        <Youtube className="w-4 h-4" />
+                        Capacitación Grupal
+                    </button>
+                    {!isAdding && (
+                         <button
+                            onClick={() => setIsAdding(true)}
+                            className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-700 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+                        >
+                            <Plus className="w-4 h-4 mr-2 inline" /> Nueva Iglesia
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <div className="mb-10 p-6 bg-indigo-50/50 border border-indigo-100 rounded-[2rem] flex items-start gap-4">
+                <div className="bg-indigo-100 p-3 rounded-2xl text-indigo-600">
+                    <Info className="w-6 h-6" />
+                </div>
+                <p className="text-xs text-indigo-800 leading-relaxed font-medium">
+                    Usa <strong className="font-black">Capacitación Grupal</strong> para marcar lecciones que se imparten a todos los líderes de la zona al mismo tiempo. Esto actualizará el progreso de <span className="font-black underline">todas</span> las iglesias del clúster simultáneamente.
+                </p>
+            </div>
+
+            {isAdding && (
+                <div className="mb-10 p-8 bg-white rounded-[2.5rem] border border-indigo-100 shadow-xl animate-in zoom-in-95 duration-300">
+                    <form onSubmit={handleAddSubmit} className="space-y-4">
+                        <label className="block text-[10px] font-black text-indigo-900 uppercase tracking-widest ml-2">
+                            Nombre de la Iglesia
+                        </label>
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <input
+                                type="text"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                placeholder="Ej: Templo Betania"
+                                className="flex-grow px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:ring-4 focus:ring-indigo-50 transition-all"
+                                required
+                                autoFocus
+                            />
+                            <div className="flex gap-2">
+                                <button type="submit" className="flex-grow px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all">Guardar</button>
+                                <button type="button" onClick={() => setIsAdding(false)} className="px-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">Cancelar</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            <div className="space-y-4">
+                {churches.map(church => {
+                    const progress = getChurchProgress(church.id);
+                    const isSelected = selectedChurchId === church.id;
+                    
+                    return (
+                        <div key={church.id} className="flex items-center gap-4 group">
+                            <button
+                                onClick={() => onSelectChurch(church)}
+                                className={`flex-grow text-left p-6 rounded-[2rem] transition-all duration-500 border flex items-center gap-6 relative overflow-hidden
+                                    ${isSelected
+                                        ? 'bg-gradient-to-r from-indigo-50 to-white border-indigo-200 shadow-2xl translate-x-2' 
+                                        : 'bg-white/60 border-white/40 hover:bg-white hover:border-indigo-100 hover:shadow-xl hover:scale-[1.01] backdrop-blur-sm'
+                                    }`
+                                }
+                            >
+                                {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500" />}
+                                
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg ${isSelected ? 'bg-indigo-600 text-white' : 'bg-white text-slate-300 group-hover:bg-indigo-50 group-hover:text-indigo-600'}`}>
+                                    <Church className="w-7 h-7" />
+                                </div>
+                                
+                                <div className="flex-grow min-w-0">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className={`font-black text-lg uppercase tracking-tight truncate ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{church.name}</span>
+                                        {isSelected && <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-600 text-[8px] font-black uppercase tracking-widest animate-pulse">Activa</span>}
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-grow bg-slate-100 rounded-full h-2.5 overflow-hidden shadow-inner border border-slate-200/50">
+                                            <div 
+                                                className={`h-full rounded-full transition-all duration-1000 ${progress.percentage === 100 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}`}
+                                                style={{ width: `${progress.percentage}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-xs font-black text-slate-500 w-10 text-right">
+                                            {Math.round(progress.percentage)}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </button>
+
+                            <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                                <button 
+                                    onClick={() => onResetChurchProgress(church.id)}
+                                    className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-colors shadow-sm border border-amber-100"
+                                    title="Reiniciar Progreso"
+                                >
+                                    <RotateCcw className="w-4 h-4" />
+                                </button>
+                                <button 
+                                    onClick={() => onDeleteChurch(church.id)}
+                                    className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors shadow-sm border border-red-100"
+                                    title="Eliminar Iglesia"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
+
+                {churches.length === 0 && !isAdding && (
+                    <div className="text-center py-20 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200">
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                            <Church className="w-10 h-10 text-slate-200" />
+                        </div>
+                        <h4 className="text-xl font-black text-slate-400 uppercase tracking-widest">No hay iglesias en este clúster</h4>
+                        <p className="text-slate-400 mt-2 font-medium">Comienza añadiendo la primera congregación</p>
+                    </div>
+                )}
+            </div>
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={<Users className="text-blue-600" />} title="Líderes" value={stats.totalChurches} color="bg-blue-50" />
-        <StatCard icon={<BookOpen className="text-amber-600" />} title="Libros" value={stats.totalBooks} color="bg-amber-50" />
-        <StatCard icon={<Calendar className="text-indigo-600" />} title="Grupos" value={stats.totalMeetings} color="bg-indigo-50" />
-        <StatCard icon={<CheckCircle className="text-emerald-600" />} title="Contacto" value={`${stats.totalChurches > 0 ? Math.round((stats.sentCount / stats.totalChurches) * 100) : 0}%`} color="bg-emerald-50" />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border">
-          <h3 className="text-lg font-black mb-8 uppercase tracking-tighter">Distribución por Zona</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.zoneChartData} layout="vertical">
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={100} fontSize={9} fontWeight="bold" />
-                <Tooltip />
-                <Bar dataKey="churches" fill="#3b82f6" radius={[0, 8, 8, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border flex flex-col items-center">
-          <h3 className="text-lg font-black mb-8 w-full text-left uppercase tracking-tighter">Efectividad</h3>
-          <div className="h-[250px] w-full flex items-center justify-center relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart><Pie data={stats.statusChartData} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value">{stats.statusChartData.map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
-const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: number | string; color: string }> = ({ icon, title, value, color }) => (
-  <div className="p-6 rounded-[1.5rem] shadow-sm border bg-white flex items-center gap-4">
-    <div className={`p-3 rounded-xl ${color}`}>{icon}</div>
-    <div><p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{title}</p><p className="text-2xl font-black text-slate-800 tracking-tighter">{value}</p></div>
-  </div>
-);
-export default Dashboard;
+export default ChurchesPanel;

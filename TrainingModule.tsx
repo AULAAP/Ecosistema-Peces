@@ -1,95 +1,133 @@
-import React from 'react';
-import { CheckCircle2, Circle, TrendingUp, Calendar } from 'lucide-react';
-import type { WeeklyPlan } from '../types';
 
-interface MonitoringPanelProps {
-    plans: WeeklyPlan[];
-    onTopicSelect: (weekNumber: number) => void;
-    churchName: string;
-}
+/* --- FILE: components/ChurchManagement.tsx --- */
+import React, { useState, useRef } from 'react';
+import { ChurchLeader, Meeting, ContactStatus } from '../types';
+import { Search, Filter, MessageCircle, FileUp, MoreVertical, X, UserPlus, BookOpen } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
-const MonitoringPanel: React.FC<MonitoringPanelProps> = ({ plans, onTopicSelect, churchName }) => {
-    const completedCount = plans.filter(p => p.isCompleted).length;
-    const totalCount = plans.length;
-    const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-    return (
-        <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Header Stats */}
-            <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-10 shadow-2xl border border-white/60 mb-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-50" />
-                
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="text-center md:text-left">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest mb-4 border border-emerald-100">
-                            <TrendingUp className="w-3 h-3" /> Monitoreo de Avance
-                        </div>
-                        <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-2">{churchName}</h2>
-                        <p className="text-slate-500 font-medium">Seguimiento detallado de la ruta de aprendizaje</p>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                        <div className="text-center">
-                            <div className="text-5xl font-black text-indigo-600 tracking-tighter mb-1">{percentage}%</div>
-                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Completado</div>
-                        </div>
-                        <div className="w-px h-16 bg-slate-100 hidden md:block" />
-                        <div className="text-center">
-                            <div className="text-3xl font-black text-slate-800 tracking-tight mb-1">{completedCount}/{totalCount}</div>
-                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lecciones</div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mt-10 relative h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
-                    <div 
-                        className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(79,70,229,0.4)]"
-                        style={{ width: `${percentage}%` }}
-                    >
-                        <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                    </div>
-                </div>
-            </div>
-
-            {/* Timeline List */}
-            <div className="bg-white/70 backdrop-blur-md rounded-[2.5rem] shadow-xl border border-white/50 overflow-hidden">
-                <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Cronograma de Actividades</h3>
-                    <Calendar className="w-4 h-4 text-slate-400" />
-                </div>
-                <div className="divide-y divide-slate-100">
-                    {plans.map((plan) => (
-                        <button
-                            key={plan.weekNumber}
-                            onClick={() => onTopicSelect(plan.weekNumber)}
-                            className="w-full flex items-center gap-6 p-6 hover:bg-white transition-all duration-300 group text-left"
-                        >
-                            <div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${plan.isCompleted ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
-                                {plan.isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
-                            </div>
-                            
-                            <div className="flex-grow min-w-0">
-                                <div className="flex items-center gap-3 mb-1">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Semana {plan.weekNumber}</span>
-                                    {plan.isCompleted && <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-tighter">Finalizada</span>}
-                                </div>
-                                <h4 className={`font-bold text-base truncate transition-colors ${plan.isCompleted ? 'text-slate-500 line-through' : 'text-slate-800 group-hover:text-indigo-600'}`}>
-                                    {plan.topic}
-                                </h4>
-                            </div>
-
-                            <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0 transition-transform duration-300">
-                                <div className="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-200">
-                                    Ver Detalles
-                                </div>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
+const normalizeString = (str: any): string => {
+  if (!str) return '';
+  return String(str).trim().replace(/\s+/g, ' ').toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 };
 
-export default MonitoringPanel;
+interface Props {
+  churches: ChurchLeader[];
+  meetings: Meeting[];
+  onOpenMessenger: (church: ChurchLeader) => void;
+  onAddChurch: (church: Omit<ChurchLeader, 'id' | 'status'>) => void;
+  onBulkImport: (churches: Omit<ChurchLeader, 'id' | 'status'>[]) => void;
+}
+
+const ChurchManagement: React.FC<Props> = ({ churches, meetings, onOpenMessenger, onAddChurch, onBulkImport }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [zoneFilter, setZoneFilter] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const wb = XLSX.read(evt.target?.result, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header: "A" }) as any[];
+      
+      const imported: Omit<ChurchLeader, 'id' | 'status'>[] = data.slice(1).map(row => {
+        const zoneRaw = normalizeString(row.H || '');
+        const fallback = normalizeString(row.G || '');
+        // El usuario indica que la columna I es ahora la de Sede de Reunión.
+        // La columna K suele ser el nombre del grupo/reunión.
+        return {
+          fullName: normalizeString(row.A),
+          whatsapp: String(row.B || '').trim().replace(/\D/g, ''),
+          email: normalizeString(row.C),
+          churchName: normalizeString(row.D),
+          community: normalizeString(row.E),
+          zone: (zoneRaw.toUpperCase().includes('OTRA') || !zoneRaw) ? (fallback || 'Sin Zona') : zoneRaw,
+          meetingId: normalizeString(row.K || row.H || 'General'),
+          booksCount: Number(row.G) || 0,
+          responsibleEntity: normalizeString(row.F),
+          suggestedVenue: normalizeString(row.I) // Mapeo solicitado: Columna I como Sede
+        };
+      });
+      onBulkImport(imported);
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const filtered = churches.filter(c => 
+    (c.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+     c.churchName.toLowerCase().includes(searchTerm.toLowerCase())) && 
+    (zoneFilter === 'all' || c.zone === zoneFilter)
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Directorio</h2>
+        <div className="flex gap-2">
+          <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg"><FileUp className="w-4 h-4" /> Importar Excel</button>
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx, .xls, .csv" className="hidden" />
+          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"><UserPlus className="w-4 h-4" /> Nuevo</button>
+        </div>
+      </div>
+      <div className="bg-white rounded-[2rem] shadow-sm border overflow-hidden">
+        <div className="p-6 border-b flex items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <input type="text" placeholder="Buscar líder o iglesia..." className="w-full pl-12 pr-6 py-3 bg-slate-50 rounded-2xl outline-none text-sm font-medium" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 text-slate-400 text-[9px] font-black uppercase tracking-widest border-b">
+              <tr>
+                <th className="px-8 py-4">Líder</th>
+                <th className="px-8 py-4">Territorio</th>
+                <th className="px-8 py-4">Sede (Columna I)</th>
+                <th className="px-8 py-4">Libros</th>
+                <th className="px-8 py-4">Reunión</th>
+                <th className="px-8 py-4 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filtered.map(c => (
+                <tr key={c.id} className="hover:bg-slate-50/80 transition-all">
+                  <td className="px-8 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-400 border">{c.fullName.charAt(0)}</div>
+                      <div>
+                        <p className="font-black text-slate-800 leading-tight">{c.fullName}</p>
+                        <p className="text-blue-600 text-[10px] font-bold uppercase tracking-tighter">{c.churchName}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-8 py-4"><p className="font-bold text-slate-700">{c.zone}</p></td>
+                  <td className="px-8 py-4">
+                    {c.suggestedVenue ? (
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">{c.suggestedVenue}</span>
+                    ) : (
+                      <span className="text-[10px] text-slate-300 italic">No definida</span>
+                    )}
+                  </td>
+                  <td className="px-8 py-4 font-black text-slate-700"><BookOpen className="w-4 h-4 inline mr-2 text-amber-500" />{c.booksCount}</td>
+                  <td className="px-8 py-4"><span className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-1 rounded-lg border border-blue-100">{c.meetingId}</span></td>
+                  <td className="px-8 py-4 text-right">
+                    <button onClick={() => onOpenMessenger(c)} className="p-2 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm border border-transparent hover:border-emerald-700">
+                      <MessageCircle className="w-5 h-5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filtered.length === 0 && (
+            <div className="p-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">No se encontraron resultados</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+export default ChurchManagement;

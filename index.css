@@ -1,66 +1,38 @@
-{
-  "entities": {
-    "ChurchLeader": {
-      "title": "ChurchLeader",
-      "description": "A leader of a church in a specific zone.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "fullName": { "type": "string" },
-        "whatsapp": { "type": "string" },
-        "email": { "type": "string" },
-        "churchName": { "type": "string" },
-        "community": { "type": "string" },
-        "zone": { "type": "string" },
-        "meetingId": { "type": "string" },
-        "status": { "type": "string", "enum": ["pendiente", "enviado", "error"] },
-        "booksCount": { "type": "number" },
-        "responsibleEntity": { "type": "string" },
-        "lastContactDate": { "type": "string", "format": "date-time" },
-        "suggestedVenue": { "type": "string" }
-      },
-      "required": ["id", "fullName", "whatsapp", "churchName", "zone", "meetingId", "status"]
-    },
-    "Meeting": {
-      "title": "Meeting",
-      "description": "A meeting or group gathering.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "date": { "type": "string" },
-        "time": { "type": "string" },
-        "venue": { "type": "string" },
-        "zone": { "type": "string" },
-        "description": { "type": "string" }
-      },
-      "required": ["id", "name", "zone"]
-    },
-    "GroupConfig": {
-      "title": "GroupConfig",
-      "description": "Logistics configuration for a specific group (zone + meeting).",
-      "type": "object",
-      "properties": {
-        "venue": { "type": "string" },
-        "date": { "type": "string" },
-        "time": { "type": "string" },
-        "template": { "type": "string" },
-        "lastIndex": { "type": "number" }
-      }
-    }
-  },
-  "firestore": {
-    "/churches/{churchId}": {
-      "schema": "ChurchLeader",
-      "description": "Collection of church leaders."
-    },
-    "/meetings/{meetingId}": {
-      "schema": "Meeting",
-      "description": "Collection of meetings."
-    },
-    "/groupConfigs/{configId}": {
-      "schema": "GroupConfig",
-      "description": "Collection of group logistics configurations."
+
+import { initializeApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
+import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import firebaseConfig from './firebase-applet-config.json';
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+
+// Connection test
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration. The client is offline.");
     }
   }
 }
+testConnection();
+
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error) {
+    console.error("Error signing in with Google", error);
+    throw error;
+  }
+};
+
+export const logout = () => auth.signOut();
+
+export { onAuthStateChanged };
+export type { User };

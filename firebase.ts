@@ -1,64 +1,24 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-/* --- FILE: constants.tsx --- */
-import { ChurchLeader, Meeting, TrainingTopic } from './types';
+node_modules
+dist
+dist-ssr
+*.local
 
-export const INITIAL_MEETINGS: Meeting[] = [];
-export const INITIAL_CHURCHES: ChurchLeader[] = [];
-export const ZONES = [
-  'Santo Domingo Norte',
-  'Santo Domingo Este',
-  'Distrito Nacional',
-  'Zona Norte',
-  'Zona Sur',
-  'Zona Este'
-];
-
-export const INITIAL_WEEKLY_PLANS = [
-  {
-    weekNumber: 1,
-    id: '1',
-    title: 'Fundamentos del Crecimiento',
-    description: 'Estrategias básicas para la expansión del reino en comunidades locales.',
-    isCompleted: false,
-    topics: ['Visión 2026', 'Discipulado 1 a 1', 'Grupos Pequeños'],
-    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    date: '2026-03-10',
-    topic: 'Fundamentos del Crecimiento',
-    videoTitle: 'Fundamentos del Crecimiento',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    question: '¿Qué es lo más importante?',
-    lessonObjective: 'Entender los fundamentos.'
-  },
-  {
-    weekNumber: 2,
-    id: '2',
-    title: 'Liderazgo Territorial',
-    description: 'Cómo gestionar múltiples iglesias y líderes de zona.',
-    isCompleted: false,
-    topics: ['Gestión de Crisis', 'Mentoreo de Pastores', 'Logística de Eventos'],
-    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    date: '2026-03-17',
-    topic: 'Liderazgo Territorial',
-    videoTitle: 'Liderazgo Territorial',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    question: '¿Cómo lideras?',
-    lessonObjective: 'Desarrollar liderazgo.'
-  }
-];
-
-export const TRAINING_TOPICS: TrainingTopic[] = [
-  {
-    id: 't1',
-    title: 'El ADN del Líder',
-    content: 'Exploramos las cualidades espirituales y emocionales de un líder efectivo.',
-    category: 'liderazgo',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-  },
-  {
-    id: 't2',
-    title: 'Metodología de Peces',
-    content: 'Paso a paso de cómo implementar el sistema de pesca en tu zona.',
-    category: 'metodologia',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-  }
-];
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,151 +1,78 @@
+import React from 'react';
+import { CheckCircle2, Circle, PlayCircle, Target, HelpCircle } from 'lucide-react';
+import type { WeeklyPlan } from '../types';
 
-import React, { useMemo } from 'react';
-import { Meeting, ChurchLeader, ContactStatus } from '../types';
-import { MapPin, Calendar as CalendarIcon, Target, FileUp, ArrowRight, Layers, CheckCircle2 } from 'lucide-react';
-
-interface Props {
-  meetings: Meeting[];
-  churches: ChurchLeader[];
-  onSelectGroup: (zone: string, meetingId: string) => void;
+interface TopicCardProps {
+    plan: WeeklyPlan;
+    onToggleComplete: () => void;
 }
 
-const MeetingManagement: React.FC<Props> = ({ meetings, churches, onSelectGroup }) => {
-  const extractNumber = (s: string) => {
-    const match = s.match(/\d+/);
-    return match ? parseInt(match[0], 10) : Infinity;
-  };
-
-  const groupData = useMemo(() => {
-    const groups: Record<string, { zone: string; meetingId: string; count: number; sent: number; sample: ChurchLeader }> = {};
-    
-    churches.forEach(c => {
-      const key = `${c.zone}-${c.meetingId}`;
-      if (!groups[key]) {
-        groups[key] = {
-          zone: c.zone,
-          meetingId: c.meetingId,
-          count: 0,
-          sent: 0,
-          sample: c
-        };
-      }
-      groups[key].count++;
-      if (c.status === ContactStatus.SENT) {
-        groups[key].sent++;
-      }
-    });
-
-    return Object.values(groups).sort((a, b) => {
-      const numA = extractNumber(a.meetingId);
-      const numB = extractNumber(b.meetingId);
-      if (numA !== numB) return numA - numB;
-      return a.zone.localeCompare(b.zone);
-    });
-  }, [churches]);
-
-  const getMeetingName = (id: string) => {
-    const meeting = meetings.find(m => m.id === id);
-    return meeting?.name || id;
-  };
-
-  if (churches.length === 0) {
+const TopicCard: React.FC<TopicCardProps> = ({ plan, onToggleComplete }) => {
     return (
-      <div className="h-[70vh] flex flex-col items-center justify-center text-center p-10 bg-white rounded-[3rem] border-2 border-dashed border-slate-100 animate-in fade-in duration-700">
-        <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
-          <FileUp className="w-10 h-10 text-blue-500" />
-        </div>
-        <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase mb-2">Sin datos territoriales</h2>
-        <p className="text-slate-400 font-bold max-w-sm mb-8">
-          Para ver los grupos de convocatoria, carga tu archivo Excel en la pestaña de Iglesias.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase">Grupos de Convocatoria</h2>
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Target className="w-4 h-4 text-blue-500" />
-            Organización Territorial y Progreso
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {groupData.map((group, idx) => {
-          const progress = Math.round((group.sent / group.count) * 100);
-          return (
-            <div 
-              key={`${group.zone}-${group.meetingId}-${idx}`} 
-              className="group bg-white rounded-[2.5rem] shadow-sm border border-slate-100 hover:border-blue-400 hover:shadow-2xl hover:shadow-blue-200/40 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col relative"
-              onClick={() => onSelectGroup(group.zone, group.meetingId)}
-            >
-              <div className="p-10 flex-1">
-                <div className="flex items-center justify-between mb-8">
-                  <span className="px-5 py-2 bg-blue-600 text-white text-[9px] font-black rounded-xl uppercase tracking-widest shadow-lg shadow-blue-100">
-                    {group.zone}
-                  </span>
-                  <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm">
-                    <ArrowRight className="w-6 h-6" />
-                  </div>
-                </div>
-                
-                <h3 className="text-2xl font-black text-slate-800 mb-4 leading-[1.1] group-hover:text-blue-600 transition-colors uppercase tracking-tighter">
-                  {getMeetingName(group.meetingId)}
-                </h3>
-
-                {/* BARRA DE PROGRESO EN TARJETA */}
-                <div className="mb-8 space-y-2">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                    <span className="text-slate-400">Avance</span>
-                    <span className={progress === 100 ? 'text-emerald-500' : 'text-blue-600'}>{progress}%</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-1000 ${progress === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 text-sm text-slate-500 font-bold">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-                      <Layers className="w-5 h-5 text-slate-400" />
-                    </div>
-                    <span className="tracking-tight">Grupo Territorial: {group.zone}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-slate-400 font-bold">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-                      <MapPin className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="truncate tracking-tight">
-                      {group.sample.suggestedVenue || 'Sede por definir'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-8 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between backdrop-blur-sm">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="text-2xl font-black text-slate-800 leading-none">{group.sent} <span className="text-slate-300 font-bold text-lg">/ {group.count}</span></p>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Líderes Notificados</p>
-                  </div>
-                </div>
-                <div className={`flex items-center gap-2 font-black text-[10px] uppercase tracking-widest group-hover:translate-x-1 transition-transform ${progress === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
-                  {progress === 100 ? <><CheckCircle2 className="w-3 h-3" /> Finalizado</> : <>Programar <ArrowRight className="w-3 h-3" /></>}
-                </div>
-              </div>
+        <div className={`group relative bg-white/70 backdrop-blur-md rounded-3xl p-6 border transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 ${plan.isCompleted ? 'border-emerald-200 shadow-emerald-100/50' : 'border-white/50 shadow-xl shadow-slate-200/50'}`}>
+            
+            {/* Status Badge */}
+            <div className="absolute -top-3 -right-3 z-10">
+                <button 
+                    onClick={onToggleComplete}
+                    className={`flex items-center justify-center w-10 h-10 rounded-2xl shadow-lg transition-all duration-300 active:scale-90 ${plan.isCompleted ? 'bg-emerald-500 text-white rotate-0' : 'bg-white text-slate-300 hover:text-indigo-500 rotate-12 group-hover:rotate-0'}`}
+                >
+                    {plan.isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                </button>
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+
+            <div className="flex flex-col h-full">
+                <div className="mb-4">
+                    <span className="inline-block px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest mb-3">
+                        Semana {plan.weekNumber}
+                    </span>
+                    <h3 className="text-lg font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
+                        {plan.topic}
+                    </h3>
+                </div>
+
+                <div className="space-y-4 flex-grow">
+                    {/* Objective */}
+                    <div className="flex gap-3 items-start">
+                        <div className="mt-1 p-1.5 rounded-lg bg-amber-50 text-amber-600">
+                            <Target className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Objetivo</p>
+                            <p className="text-xs text-slate-600 font-medium leading-relaxed">{plan.lessonObjective}</p>
+                        </div>
+                    </div>
+
+                    {/* Video Link */}
+                    <a 
+                        href={plan.videoUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 transition-colors group/link"
+                    >
+                        <div className="p-2 rounded-xl bg-white text-red-500 shadow-sm group-hover/link:scale-110 transition-transform">
+                            <PlayCircle className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Video Sugerido</p>
+                            <p className="text-[11px] font-bold text-slate-700 truncate">{plan.videoTitle}</p>
+                        </div>
+                    </a>
+
+                    {/* Question */}
+                    <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100/50">
+                        <div className="flex items-center gap-2 mb-2">
+                            <HelpCircle className="w-3.5 h-3.5 text-indigo-500" />
+                            <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Pregunta de Reflexión</span>
+                        </div>
+                        <p className="text-xs text-slate-700 font-semibold italic leading-relaxed">
+                            "{plan.question}"
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 
-export default MeetingManagement;
+export default TopicCard;
