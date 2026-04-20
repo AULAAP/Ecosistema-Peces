@@ -1,104 +1,151 @@
 
-/* --- FILE: components/Dashboard.tsx --- */
-import React, { useMemo, useState } from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell 
-} from 'recharts';
-import { ChurchLeader, Meeting, ContactStatus } from '../types';
-import { Users, MapPin, Calendar, CheckCircle, Clock, LayoutGrid, BookOpen } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Meeting, ChurchLeader, ContactStatus } from '../types';
+import { MapPin, Calendar as CalendarIcon, Target, FileUp, ArrowRight, Layers, CheckCircle2 } from 'lucide-react';
 
 interface Props {
-  churches: ChurchLeader[];
   meetings: Meeting[];
+  churches: ChurchLeader[];
+  onSelectGroup: (zone: string, meetingId: string) => void;
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const MeetingManagement: React.FC<Props> = ({ meetings, churches, onSelectGroup }) => {
+  const extractNumber = (s: string) => {
+    const match = s.match(/\d+/);
+    return match ? parseInt(match[0], 10) : Infinity;
+  };
 
-const Dashboard: React.FC<Props> = ({ churches, meetings }) => {
-  const [selectedZone, setSelectedZone] = useState<string>('Todas');
+  const groupData = useMemo(() => {
+    const groups: Record<string, { zone: string; meetingId: string; count: number; sent: number; sample: ChurchLeader }> = {};
+    
+    churches.forEach(c => {
+      const key = `${c.zone}-${c.meetingId}`;
+      if (!groups[key]) {
+        groups[key] = {
+          zone: c.zone,
+          meetingId: c.meetingId,
+          count: 0,
+          sent: 0,
+          sample: c
+        };
+      }
+      groups[key].count++;
+      if (c.status === ContactStatus.SENT) {
+        groups[key].sent++;
+      }
+    });
 
-  const dynamicZones = useMemo(() => {
-    const zones = Array.from(new Set(churches.map(c => c.zone))).filter(Boolean) as string[];
-    return zones.sort();
+    return Object.values(groups).sort((a, b) => {
+      const numA = extractNumber(a.meetingId);
+      const numB = extractNumber(b.meetingId);
+      if (numA !== numB) return numA - numB;
+      return a.zone.localeCompare(b.zone);
+    });
   }, [churches]);
 
-  const stats = useMemo(() => {
-    const filtered = selectedZone === 'Todas' ? churches : churches.filter(c => c.zone === selectedZone);
-    const sentCount = filtered.filter(c => c.status === ContactStatus.SENT).length;
-    const pendingCount = filtered.filter(c => c.status === ContactStatus.PENDING).length;
-    const totalBooks = filtered.reduce((acc, curr) => acc + (curr.booksCount || 0), 0);
-    const zoneData: Record<string, { name: string, churches: number, books: number }> = {};
-    churches.forEach(c => {
-      if (!zoneData[c.zone]) zoneData[c.zone] = { name: c.zone, churches: 0, books: 0 };
-      zoneData[c.zone].churches += 1;
-      zoneData[c.zone].books += (c.booksCount || 0);
-    });
-    return {
-      totalChurches: filtered.length,
-      totalMeetings: new Set(filtered.map(c => c.meetingId)).size,
-      totalBooks,
-      sentCount,
-      pendingCount,
-      zoneChartData: Object.values(zoneData).sort((a, b) => b.churches - a.churches),
-      statusChartData: [{ name: 'Enviados', value: sentCount }, { name: 'Pendientes', value: pendingCount }]
-    };
-  }, [churches, selectedZone]);
+  const getMeetingName = (id: string) => {
+    const meeting = meetings.find(m => m.id === id);
+    return meeting?.name || id;
+  };
 
-  if (churches.length === 0) return (
-    <div className="h-[70vh] flex flex-col items-center justify-center text-center p-10 bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
-      <LayoutGrid className="w-16 h-16 text-blue-100 mb-6" />
-      <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Panel Vacío</h2>
-      <p className="text-slate-400 font-bold max-w-sm">Importa registros para visualizar las métricas.</p>
-    </div>
-  );
+  if (churches.length === 0) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center text-center p-10 bg-white rounded-[3rem] border-2 border-dashed border-slate-100 animate-in fade-in duration-700">
+        <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
+          <FileUp className="w-10 h-10 text-blue-500" />
+        </div>
+        <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase mb-2">Sin datos territoriales</h2>
+        <p className="text-slate-400 font-bold max-w-sm mb-8">
+          Para ver los grupos de convocatoria, carga tu archivo Excel en la pestaña de Iglesias.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase">Vista Territorial</h2>
-        <div className="flex gap-2 overflow-x-auto max-w-md p-1 bg-white rounded-2xl border">
-          <button onClick={() => setSelectedZone('Todas')} className={`px-4 py-2 text-[9px] font-black rounded-xl uppercase transition-all ${selectedZone === 'Todas' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>Todas</button>
-          {dynamicZones.map(z => (<button key={z} onClick={() => setSelectedZone(z)} className={`px-4 py-2 text-[9px] font-black rounded-xl uppercase transition-all ${selectedZone === z ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{z}</button>))}
+        <div>
+          <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase">Grupos de Convocatoria</h2>
+          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <Target className="w-4 h-4 text-blue-500" />
+            Organización Territorial y Progreso
+          </p>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={<Users className="text-blue-600" />} title="Líderes" value={stats.totalChurches} color="bg-blue-50" />
-        <StatCard icon={<BookOpen className="text-amber-600" />} title="Libros" value={stats.totalBooks} color="bg-amber-50" />
-        <StatCard icon={<Calendar className="text-indigo-600" />} title="Grupos" value={stats.totalMeetings} color="bg-indigo-50" />
-        <StatCard icon={<CheckCircle className="text-emerald-600" />} title="Contacto" value={`${stats.totalChurches > 0 ? Math.round((stats.sentCount / stats.totalChurches) * 100) : 0}%`} color="bg-emerald-50" />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border">
-          <h3 className="text-lg font-black mb-8 uppercase tracking-tighter">Distribución por Zona</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.zoneChartData} layout="vertical">
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={100} fontSize={9} fontWeight="bold" />
-                <Tooltip />
-                <Bar dataKey="churches" fill="#3b82f6" radius={[0, 8, 8, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border flex flex-col items-center">
-          <h3 className="text-lg font-black mb-8 w-full text-left uppercase tracking-tighter">Efectividad</h3>
-          <div className="h-[250px] w-full flex items-center justify-center relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart><Pie data={stats.statusChartData} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value">{stats.statusChartData.map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {groupData.map((group, idx) => {
+          const progress = Math.round((group.sent / group.count) * 100);
+          return (
+            <div 
+              key={`${group.zone}-${group.meetingId}-${idx}`} 
+              className="group bg-white rounded-[2.5rem] shadow-sm border border-slate-100 hover:border-blue-400 hover:shadow-2xl hover:shadow-blue-200/40 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col relative"
+              onClick={() => onSelectGroup(group.zone, group.meetingId)}
+            >
+              <div className="p-10 flex-1">
+                <div className="flex items-center justify-between mb-8">
+                  <span className="px-5 py-2 bg-blue-600 text-white text-[9px] font-black rounded-xl uppercase tracking-widest shadow-lg shadow-blue-100">
+                    {group.zone}
+                  </span>
+                  <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm">
+                    <ArrowRight className="w-6 h-6" />
+                  </div>
+                </div>
+                
+                <h3 className="text-2xl font-black text-slate-800 mb-4 leading-[1.1] group-hover:text-blue-600 transition-colors uppercase tracking-tighter">
+                  {getMeetingName(group.meetingId)}
+                </h3>
+
+                {/* BARRA DE PROGRESO EN TARJETA */}
+                <div className="mb-8 space-y-2">
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-slate-400">Avance</span>
+                    <span className={progress === 100 ? 'text-emerald-500' : 'text-blue-600'}>{progress}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-1000 ${progress === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 text-sm text-slate-500 font-bold">
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
+                      <Layers className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <span className="tracking-tight">Grupo Territorial: {group.zone}</span>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-slate-400 font-bold">
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
+                      <MapPin className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="truncate tracking-tight">
+                      {group.sample.suggestedVenue || 'Sede por definir'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between backdrop-blur-sm">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <p className="text-2xl font-black text-slate-800 leading-none">{group.sent} <span className="text-slate-300 font-bold text-lg">/ {group.count}</span></p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Líderes Notificados</p>
+                  </div>
+                </div>
+                <div className={`flex items-center gap-2 font-black text-[10px] uppercase tracking-widest group-hover:translate-x-1 transition-transform ${progress === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
+                  {progress === 100 ? <><CheckCircle2 className="w-3 h-3" /> Finalizado</> : <>Programar <ArrowRight className="w-3 h-3" /></>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
 
-const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: number | string; color: string }> = ({ icon, title, value, color }) => (
-  <div className="p-6 rounded-[1.5rem] shadow-sm border bg-white flex items-center gap-4">
-    <div className={`p-3 rounded-xl ${color}`}>{icon}</div>
-    <div><p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{title}</p><p className="text-2xl font-black text-slate-800 tracking-tighter">{value}</p></div>
-  </div>
-);
-export default Dashboard;
+export default MeetingManagement;

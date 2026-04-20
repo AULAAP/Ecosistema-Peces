@@ -1,38 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfig from './firebase-applet-config.json';
+    function isAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.email == "ramonalduey@gmail.com" || 
+              request.auth.uid == "VB4dzPmCjaSySSzqSHp5VbDHDZw2");
+    }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+    // Specific collection rules
+    match /churches/{churchId} {
+      allow read, write: if isAuthenticated();
+    }
 
-// Connection test
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration. The client is offline.");
+    match /meetings/{meetingId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /groupConfigs/{configId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /settings/{settingId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Global admin access
+    match /{document=**} {
+      allow read, write: if isAdmin();
     }
   }
 }
-testConnection();
-
-export const signInWithGoogle = async () => {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return result.user;
-  } catch (error) {
-    console.error("Error signing in with Google", error);
-    throw error;
-  }
-};
-
-export const logout = () => auth.signOut();
-
-export { onAuthStateChanged };
-export type { User };

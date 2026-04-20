@@ -1,149 +1,104 @@
-import React, { useState } from 'react';
-import { Users, Plus, Trash2, RotateCcw, ChevronRight, LayoutGrid } from 'lucide-react';
-import type { Cluster } from '../types';
 
-interface ClustersPanelProps {
-    clusters: Cluster[];
-    selectedClusterId?: number;
-    onSelectCluster: (cluster: Cluster) => void;
-    onAddCluster: (name: string) => void;
-    onDeleteCluster: (id: number) => void;
-    onResetClusterProgress: (id: number) => void;
-    totalPlanCount: number;
-    clusterProgressData: Record<number, Record<number, boolean>>;
+/* --- FILE: components/Dashboard.tsx --- */
+import React, { useMemo, useState } from 'react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell 
+} from 'recharts';
+import { ChurchLeader, Meeting, ContactStatus } from '../types';
+import { Users, MapPin, Calendar, CheckCircle, Clock, LayoutGrid, BookOpen } from 'lucide-react';
+
+interface Props {
+  churches: ChurchLeader[];
+  meetings: Meeting[];
 }
 
-const ClustersPanel: React.FC<ClustersPanelProps> = ({ 
-    clusters, 
-    selectedClusterId, 
-    onSelectCluster, 
-    onAddCluster, 
-    onDeleteCluster, 
-    onResetClusterProgress,
-    totalPlanCount,
-    clusterProgressData
-}) => {
-    const [isAdding, setIsAdding] = useState(false);
-    const [newName, setNewName] = useState('');
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-    const handleAddSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (newName.trim()) {
-            onAddCluster(newName.trim());
-            setNewName('');
-            setIsAdding(false);
-        }
+const Dashboard: React.FC<Props> = ({ churches, meetings }) => {
+  const [selectedZone, setSelectedZone] = useState<string>('Todas');
+
+  const dynamicZones = useMemo(() => {
+    const zones = Array.from(new Set(churches.map(c => c.zone))).filter(Boolean) as string[];
+    return zones.sort();
+  }, [churches]);
+
+  const stats = useMemo(() => {
+    const filtered = selectedZone === 'Todas' ? churches : churches.filter(c => c.zone === selectedZone);
+    const sentCount = filtered.filter(c => c.status === ContactStatus.SENT).length;
+    const pendingCount = filtered.filter(c => c.status === ContactStatus.PENDING).length;
+    const totalBooks = filtered.reduce((acc, curr) => acc + (curr.booksCount || 0), 0);
+    const zoneData: Record<string, { name: string, churches: number, books: number }> = {};
+    churches.forEach(c => {
+      if (!zoneData[c.zone]) zoneData[c.zone] = { name: c.zone, churches: 0, books: 0 };
+      zoneData[c.zone].churches += 1;
+      zoneData[c.zone].books += (c.booksCount || 0);
+    });
+    return {
+      totalChurches: filtered.length,
+      totalMeetings: new Set(filtered.map(c => c.meetingId)).size,
+      totalBooks,
+      sentCount,
+      pendingCount,
+      zoneChartData: Object.values(zoneData).sort((a, b) => b.churches - a.churches),
+      statusChartData: [{ name: 'Enviados', value: sentCount }, { name: 'Pendientes', value: pendingCount }]
     };
+  }, [churches, selectedZone]);
 
-    const getClusterProgress = (clusterId: number) => {
-        const progress = clusterProgressData[clusterId] || {};
-        const completedCount = Object.keys(progress).length;
-        return totalPlanCount > 0 ? (completedCount / totalPlanCount) * 100 : 0;
-    };
+  if (churches.length === 0) return (
+    <div className="h-[70vh] flex flex-col items-center justify-center text-center p-10 bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
+      <LayoutGrid className="w-16 h-16 text-blue-100 mb-6" />
+      <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Panel Vacío</h2>
+      <p className="text-slate-400 font-bold max-w-sm">Importa registros para visualizar las métricas.</p>
+    </div>
+  );
 
-    return (
-        <div className="max-w-5xl mx-auto animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-                <div className="text-center md:text-left">
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">Gestión de Clústers</h2>
-                    <p className="text-slate-500 font-medium">Organiza y supervisa el avance de tus zonas pastorales</p>
-                </div>
-                <button 
-                    onClick={() => setIsAdding(true)}
-                    className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-slate-200"
-                >
-                    <Plus className="w-5 h-5" /> Nuevo Clúster
-                </button>
-            </div>
-
-            {isAdding && (
-                <div className="mb-12 p-8 bg-white rounded-[2.5rem] shadow-2xl border border-indigo-100 animate-in zoom-in-95 duration-300">
-                    <form onSubmit={handleAddSubmit} className="flex flex-col md:flex-row gap-4">
-                        <input 
-                            type="text" 
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                            placeholder="Nombre del nuevo clúster..."
-                            className="flex-grow px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:ring-4 focus:ring-indigo-50 transition-all"
-                            autoFocus
-                        />
-                        <div className="flex gap-2">
-                            <button type="submit" className="flex-grow md:flex-grow-0 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all">Guardar</button>
-                            <button type="button" onClick={() => setIsAdding(false)} className="px-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">Cancelar</button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {clusters.map((cluster) => {
-                    const progress = getClusterProgress(cluster.id);
-                    const isSelected = selectedClusterId === cluster.id;
-                    
-                    return (
-                        <div key={cluster.id} className={`group relative bg-white rounded-[2.5rem] p-8 border transition-all duration-500 ${isSelected ? 'border-indigo-500 shadow-2xl shadow-indigo-100 scale-[1.02]' : 'border-slate-100 shadow-xl hover:shadow-2xl hover:border-indigo-200'}`}>
-                            <div className="flex justify-between items-start mb-8">
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-500 ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600'}`}>
-                                    <LayoutGrid className="w-7 h-7" />
-                                </div>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button 
-                                        onClick={() => onResetClusterProgress(cluster.id)}
-                                        className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-colors"
-                                        title="Reiniciar Progreso"
-                                    >
-                                        <RotateCcw className="w-4 h-4" />
-                                    </button>
-                                    <button 
-                                        onClick={() => onDeleteCluster(cluster.id)}
-                                        className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
-                                        title="Eliminar Clúster"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-2">{cluster.name}</h3>
-                            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-8">
-                                <Users className="w-3 h-3" /> {cluster.churchIds.length} Iglesias Vinculadas
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-end">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progreso del Líder</span>
-                                    <span className="text-sm font-black text-indigo-600">{Math.round(progress)}%</span>
-                                </div>
-                                <div className="h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
-                                    <div 
-                                        className="h-full bg-indigo-600 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(79,70,229,0.3)]"
-                                        style={{ width: `${progress}%` }}
-                                    />
-                                </div>
-                            </div>
-
-                            <button 
-                                onClick={() => onSelectCluster(cluster)}
-                                className={`w-full mt-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-slate-50 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600'}`}
-                            >
-                                Gestionar Iglesias <ChevronRight className="w-4 h-4" />
-                            </button>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {clusters.length === 0 && !isAdding && (
-                <div className="text-center py-20 bg-white/50 rounded-[3rem] border-2 border-dashed border-slate-200">
-                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <LayoutGrid className="w-10 h-10 text-slate-300" />
-                    </div>
-                    <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest">No hay clústers registrados</h3>
-                    <p className="text-slate-400 mt-2 font-medium">Comienza creando tu primera zona pastoral</p>
-                </div>
-            )}
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase">Vista Territorial</h2>
+        <div className="flex gap-2 overflow-x-auto max-w-md p-1 bg-white rounded-2xl border">
+          <button onClick={() => setSelectedZone('Todas')} className={`px-4 py-2 text-[9px] font-black rounded-xl uppercase transition-all ${selectedZone === 'Todas' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>Todas</button>
+          {dynamicZones.map(z => (<button key={z} onClick={() => setSelectedZone(z)} className={`px-4 py-2 text-[9px] font-black rounded-xl uppercase transition-all ${selectedZone === z ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{z}</button>))}
         </div>
-    );
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard icon={<Users className="text-blue-600" />} title="Líderes" value={stats.totalChurches} color="bg-blue-50" />
+        <StatCard icon={<BookOpen className="text-amber-600" />} title="Libros" value={stats.totalBooks} color="bg-amber-50" />
+        <StatCard icon={<Calendar className="text-indigo-600" />} title="Grupos" value={stats.totalMeetings} color="bg-indigo-50" />
+        <StatCard icon={<CheckCircle className="text-emerald-600" />} title="Contacto" value={`${stats.totalChurches > 0 ? Math.round((stats.sentCount / stats.totalChurches) * 100) : 0}%`} color="bg-emerald-50" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border">
+          <h3 className="text-lg font-black mb-8 uppercase tracking-tighter">Distribución por Zona</h3>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.zoneChartData} layout="vertical">
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" width={100} fontSize={9} fontWeight="bold" />
+                <Tooltip />
+                <Bar dataKey="churches" fill="#3b82f6" radius={[0, 8, 8, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border flex flex-col items-center">
+          <h3 className="text-lg font-black mb-8 w-full text-left uppercase tracking-tighter">Efectividad</h3>
+          <div className="h-[250px] w-full flex items-center justify-center relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart><Pie data={stats.statusChartData} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value">{stats.statusChartData.map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-export default ClustersPanel;
+const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: number | string; color: string }> = ({ icon, title, value, color }) => (
+  <div className="p-6 rounded-[1.5rem] shadow-sm border bg-white flex items-center gap-4">
+    <div className={`p-3 rounded-xl ${color}`}>{icon}</div>
+    <div><p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{title}</p><p className="text-2xl font-black text-slate-800 tracking-tighter">{value}</p></div>
+  </div>
+);
+export default Dashboard;

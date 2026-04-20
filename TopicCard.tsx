@@ -1,151 +1,184 @@
+import React, { useState } from 'react';
+import { Church, Plus, Trash2, RotateCcw, Youtube, Info } from 'lucide-react';
+import type { TrainingChurch, ContactStatus } from '../types';
 
-import React, { useMemo } from 'react';
-import { Meeting, ChurchLeader, ContactStatus } from '../types';
-import { MapPin, Calendar as CalendarIcon, Target, FileUp, ArrowRight, Layers, CheckCircle2 } from 'lucide-react';
-
-interface Props {
-  meetings: Meeting[];
-  churches: ChurchLeader[];
-  onSelectGroup: (zone: string, meetingId: string) => void;
+interface ChurchesPanelProps {
+    churches: TrainingChurch[];
+    selectedChurchId?: number;
+    onSelectChurch: (church: TrainingChurch) => void;
+    onSelectClusterPlan: () => void;
+    onAddChurch: (name: string) => void;
+    onDeleteChurch: (churchId: number) => void;
+    onResetChurchProgress: (churchId: number) => void;
+    totalPlanCount: number;
+    progressData: Record<number, Record<number, boolean>>;
 }
 
-const MeetingManagement: React.FC<Props> = ({ meetings, churches, onSelectGroup }) => {
-  const extractNumber = (s: string) => {
-    const match = s.match(/\d+/);
-    return match ? parseInt(match[0], 10) : Infinity;
-  };
+const ChurchesPanel: React.FC<ChurchesPanelProps> = ({ 
+    churches, 
+    selectedChurchId, 
+    onSelectChurch, 
+    onSelectClusterPlan,
+    onAddChurch, 
+    onDeleteChurch, 
+    onResetChurchProgress, 
+    totalPlanCount, 
+    progressData 
+}) => {
+    const [isAdding, setIsAdding] = useState(false);
+    const [newName, setNewName] = useState('');
 
-  const groupData = useMemo(() => {
-    const groups: Record<string, { zone: string; meetingId: string; count: number; sent: number; sample: ChurchLeader }> = {};
-    
-    churches.forEach(c => {
-      const key = `${c.zone}-${c.meetingId}`;
-      if (!groups[key]) {
-        groups[key] = {
-          zone: c.zone,
-          meetingId: c.meetingId,
-          count: 0,
-          sent: 0,
-          sample: c
-        };
-      }
-      groups[key].count++;
-      if (c.status === ContactStatus.SENT) {
-        groups[key].sent++;
-      }
-    });
+    const handleAddSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newName.trim()) {
+            onAddChurch(newName.trim());
+            setNewName('');
+            setIsAdding(false);
+        }
+    };
 
-    return Object.values(groups).sort((a, b) => {
-      const numA = extractNumber(a.meetingId);
-      const numB = extractNumber(b.meetingId);
-      if (numA !== numB) return numA - numB;
-      return a.zone.localeCompare(b.zone);
-    });
-  }, [churches]);
+    const getChurchProgress = (churchId: number) => {
+        const churchProgress = progressData[churchId] || {};
+        const completedCount = Object.keys(churchProgress).length;
+        const percentage = totalPlanCount > 0 ? (completedCount / totalPlanCount) * 100 : 0;
+        return { completed: completedCount, percentage };
+    };
 
-  const getMeetingName = (id: string) => {
-    const meeting = meetings.find(m => m.id === id);
-    return meeting?.name || id;
-  };
-
-  if (churches.length === 0) {
     return (
-      <div className="h-[70vh] flex flex-col items-center justify-center text-center p-10 bg-white rounded-[3rem] border-2 border-dashed border-slate-100 animate-in fade-in duration-700">
-        <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
-          <FileUp className="w-10 h-10 text-blue-500" />
-        </div>
-        <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase mb-2">Sin datos territoriales</h2>
-        <p className="text-slate-400 font-bold max-w-sm mb-8">
-          Para ver los grupos de convocatoria, carga tu archivo Excel en la pestaña de Iglesias.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase">Grupos de Convocatoria</h2>
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Target className="w-4 h-4 text-blue-500" />
-            Organización Territorial y Progreso
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {groupData.map((group, idx) => {
-          const progress = Math.round((group.sent / group.count) * 100);
-          return (
-            <div 
-              key={`${group.zone}-${group.meetingId}-${idx}`} 
-              className="group bg-white rounded-[2.5rem] shadow-sm border border-slate-100 hover:border-blue-400 hover:shadow-2xl hover:shadow-blue-200/40 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col relative"
-              onClick={() => onSelectGroup(group.zone, group.meetingId)}
-            >
-              <div className="p-10 flex-1">
-                <div className="flex items-center justify-between mb-8">
-                  <span className="px-5 py-2 bg-blue-600 text-white text-[9px] font-black rounded-xl uppercase tracking-widest shadow-lg shadow-blue-100">
-                    {group.zone}
-                  </span>
-                  <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm">
-                    <ArrowRight className="w-6 h-6" />
-                  </div>
+        <div className="bg-white/80 backdrop-blur-md rounded-[3rem] shadow-2xl p-10 border border-white/60 max-w-4xl mx-auto relative animate-in fade-in duration-700">
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 pb-8 border-b border-slate-100 gap-6">
+                <div>
+                    <h3 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Iglesias del Clúster</h3>
+                    <p className="text-slate-500 font-medium">Gestiona y monitorea cada congregación de la zona</p>
                 </div>
-                
-                <h3 className="text-2xl font-black text-slate-800 mb-4 leading-[1.1] group-hover:text-blue-600 transition-colors uppercase tracking-tighter">
-                  {getMeetingName(group.meetingId)}
-                </h3>
-
-                {/* BARRA DE PROGRESO EN TARJETA */}
-                <div className="mb-8 space-y-2">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                    <span className="text-slate-400">Avance</span>
-                    <span className={progress === 100 ? 'text-emerald-500' : 'text-blue-600'}>{progress}%</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-1000 ${progress === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        onClick={onSelectClusterPlan}
+                        className="flex items-center gap-2 px-6 py-3 text-xs font-black uppercase tracking-widest text-white bg-gradient-to-r from-teal-500 to-emerald-600 rounded-2xl hover:from-teal-400 hover:to-emerald-500 transition-all shadow-xl shadow-emerald-500/20 active:scale-95"
+                    >
+                        <Youtube className="w-4 h-4" />
+                        Capacitación Grupal
+                    </button>
+                    {!isAdding && (
+                         <button
+                            onClick={() => setIsAdding(true)}
+                            className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-700 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+                        >
+                            <Plus className="w-4 h-4 mr-2 inline" /> Nueva Iglesia
+                        </button>
+                    )}
                 </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 text-sm text-slate-500 font-bold">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-                      <Layers className="w-5 h-5 text-slate-400" />
-                    </div>
-                    <span className="tracking-tight">Grupo Territorial: {group.zone}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-slate-400 font-bold">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-                      <MapPin className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="truncate tracking-tight">
-                      {group.sample.suggestedVenue || 'Sede por definir'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-8 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between backdrop-blur-sm">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="text-2xl font-black text-slate-800 leading-none">{group.sent} <span className="text-slate-300 font-bold text-lg">/ {group.count}</span></p>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Líderes Notificados</p>
-                  </div>
-                </div>
-                <div className={`flex items-center gap-2 font-black text-[10px] uppercase tracking-widest group-hover:translate-x-1 transition-transform ${progress === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
-                  {progress === 100 ? <><CheckCircle2 className="w-3 h-3" /> Finalizado</> : <>Programar <ArrowRight className="w-3 h-3" /></>}
-                </div>
-              </div>
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+
+            <div className="mb-10 p-6 bg-indigo-50/50 border border-indigo-100 rounded-[2rem] flex items-start gap-4">
+                <div className="bg-indigo-100 p-3 rounded-2xl text-indigo-600">
+                    <Info className="w-6 h-6" />
+                </div>
+                <p className="text-xs text-indigo-800 leading-relaxed font-medium">
+                    Usa <strong className="font-black">Capacitación Grupal</strong> para marcar lecciones que se imparten a todos los líderes de la zona al mismo tiempo. Esto actualizará el progreso de <span className="font-black underline">todas</span> las iglesias del clúster simultáneamente.
+                </p>
+            </div>
+
+            {isAdding && (
+                <div className="mb-10 p-8 bg-white rounded-[2.5rem] border border-indigo-100 shadow-xl animate-in zoom-in-95 duration-300">
+                    <form onSubmit={handleAddSubmit} className="space-y-4">
+                        <label className="block text-[10px] font-black text-indigo-900 uppercase tracking-widest ml-2">
+                            Nombre de la Iglesia
+                        </label>
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <input
+                                type="text"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                placeholder="Ej: Templo Betania"
+                                className="flex-grow px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:ring-4 focus:ring-indigo-50 transition-all"
+                                required
+                                autoFocus
+                            />
+                            <div className="flex gap-2">
+                                <button type="submit" className="flex-grow px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all">Guardar</button>
+                                <button type="button" onClick={() => setIsAdding(false)} className="px-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">Cancelar</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            <div className="space-y-4">
+                {churches.map(church => {
+                    const progress = getChurchProgress(church.id);
+                    const isSelected = selectedChurchId === church.id;
+                    
+                    return (
+                        <div key={church.id} className="flex items-center gap-4 group">
+                            <button
+                                onClick={() => onSelectChurch(church)}
+                                className={`flex-grow text-left p-6 rounded-[2rem] transition-all duration-500 border flex items-center gap-6 relative overflow-hidden
+                                    ${isSelected
+                                        ? 'bg-gradient-to-r from-indigo-50 to-white border-indigo-200 shadow-2xl translate-x-2' 
+                                        : 'bg-white/60 border-white/40 hover:bg-white hover:border-indigo-100 hover:shadow-xl hover:scale-[1.01] backdrop-blur-sm'
+                                    }`
+                                }
+                            >
+                                {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500" />}
+                                
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg ${isSelected ? 'bg-indigo-600 text-white' : 'bg-white text-slate-300 group-hover:bg-indigo-50 group-hover:text-indigo-600'}`}>
+                                    <Church className="w-7 h-7" />
+                                </div>
+                                
+                                <div className="flex-grow min-w-0">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className={`font-black text-lg uppercase tracking-tight truncate ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{church.name}</span>
+                                        {isSelected && <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-600 text-[8px] font-black uppercase tracking-widest animate-pulse">Activa</span>}
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-grow bg-slate-100 rounded-full h-2.5 overflow-hidden shadow-inner border border-slate-200/50">
+                                            <div 
+                                                className={`h-full rounded-full transition-all duration-1000 ${progress.percentage === 100 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}`}
+                                                style={{ width: `${progress.percentage}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-xs font-black text-slate-500 w-10 text-right">
+                                            {Math.round(progress.percentage)}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </button>
+
+                            <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                                <button 
+                                    onClick={() => onResetChurchProgress(church.id)}
+                                    className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-colors shadow-sm border border-amber-100"
+                                    title="Reiniciar Progreso"
+                                >
+                                    <RotateCcw className="w-4 h-4" />
+                                </button>
+                                <button 
+                                    onClick={() => onDeleteChurch(church.id)}
+                                    className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors shadow-sm border border-red-100"
+                                    title="Eliminar Iglesia"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
+
+                {churches.length === 0 && !isAdding && (
+                    <div className="text-center py-20 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200">
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                            <Church className="w-10 h-10 text-slate-200" />
+                        </div>
+                        <h4 className="text-xl font-black text-slate-400 uppercase tracking-widest">No hay iglesias en este clúster</h4>
+                        <p className="text-slate-400 mt-2 font-medium">Comienza añadiendo la primera congregación</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 };
 
-export default MeetingManagement;
+export default ChurchesPanel;
