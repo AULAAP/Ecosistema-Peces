@@ -8,19 +8,34 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
  * GENERADOR DE PLANTILLAS - MOTOR DE REGLAS ESTRICTAS
  * Esta función es el corazón de la comunicación. Solo permite datos verificados.
  */
-export const generateWhatsAppTemplate = async (meeting: Meeting, tone: string = 'pastoral y formal'): Promise<string> => {
+export const generateWhatsAppTemplate = async (
+  meeting: Meeting, 
+  mode: 'individual' | 'group' = 'individual',
+  tone: string = 'pastoral y formal'
+): Promise<string> => {
   try {
+    const modeContext = mode === 'group' 
+      ? 'REDACTA UN MENSAJE GENERAL dirigido a un GRUPO (plural). PROHIBIDO usar {{nombre_completo}}, {{nombre_iglesia}}, {{comunidad}}. NO HAGAS REFERENCIA a una iglesia o comunidad específica, solo al grupo de líderes en general.' 
+      : 'REDACTA UNA PLANTILLA INDIVIDUAL. Usa {{nombre_completo}} para dirigirte al líder.';
+
     const prompt = `Actúa como un coordinador logístico de "Ecosistema Peces". 
-    Tu tarea es redactar una plantilla de invitación para WhatsApp para una reunión de líderes.
+    Tu tarea es redactar una invitación para WhatsApp.
+    
+    TIPO DE MENSAJE: ${modeContext}
+    
+    REGLAS CRÍTICAS DE FORMATO:
+    - NO USES ASTERISCOS (*) ni ningún tipo de formato Markdown (negritas, cursivas).
+    - TODO EL TEXTO DEBE SER PLANO, sin decoraciones tipográficas.
     
     REGLAS INNEGOCIABLES DE SEGURIDAD Y PRECISIÓN:
     1. PROHIBIDO INVENTAR: No menciones comida, promesas de refrigerios, transporte, parqueos ni detalles de la agenda que no estén aquí.
     2. EXCLUSIÓN DE DATOS: No incluyas cantidad de libros, entidad responsable, ni la zona territorial en el mensaje.
     3. FUENTE ÚNICA: Usa estrictamente los datos del contexto.
-    4. ETIQUETAS PERMITIDAS:
+    4. ETIQUETAS PERMITIDAS (Solo si el modo es individual):
        - {{nombre_completo}}: Líder.
        - {{nombre_iglesia}}: Congregación.
        - {{comunidad}}: Sector.
+    5. ETIQUETAS SIEMPRE PERMITIDAS:
        - {{reunion_asignada}}: Grupo de reunión.
        - {{fecha}}: Día del evento.
        - {{hora}}: Hora del evento.
@@ -39,10 +54,10 @@ export const generateWhatsAppTemplate = async (meeting: Meeting, tone: string = 
       contents: prompt,
     });
     
-    return response.text?.trim() || 'Error en generación.';
+    return response.text?.trim().replace(/\*/g, '') || 'Error en generación.';
   } catch (error) {
     console.error("Gemini Base Error:", error);
-    return `Bendiciones {{nombre_completo}}. Le invitamos a la reunión de {{reunion_asignada}} el día {{fecha}} a las {{hora}} en {{sede}}.`;
+    return `Bendiciones. Le invitamos a la reunión de {{reunion_asignada}} el día {{fecha}} a las {{hora}} en {{sede}}.`.replace(/\*/g, '');
   }
 };
 
@@ -58,7 +73,9 @@ export const parseTemplate = (template: string, church: ChurchLeader, meeting: M
   message = message.replace(/{{fecha}}/g, meeting.date || 'Por definir');
   message = message.replace(/{{hora}}/g, meeting.time || 'Por definir');
   message = message.replace(/{{sede}}/g, meeting.venue || 'Por definir');
-  return message;
+  
+  // Limpieza final de asteriscos por seguridad
+  return message.replace(/\*/g, '');
 };
 
 /**

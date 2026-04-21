@@ -7,13 +7,14 @@ import {
 } from 'recharts';
 import { ChurchLeader, Meeting, ContactStatus } from '../types';
 import { Users, MapPin, Calendar, CheckCircle, Clock, LayoutGrid, BookOpen } from 'lucide-react';
+import ModernInfographic from './ModernInfographic';
 
 interface Props {
   churches: ChurchLeader[];
   meetings: Meeting[];
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const COLORS = ['#4169E1', '#00C9A7', '#FFBF00', '#ef4444', '#8b5cf6', '#ec4899'];
 
 const Dashboard: React.FC<Props> = ({ churches, meetings }) => {
   const [selectedZone, setSelectedZone] = useState<string>('Todas');
@@ -54,40 +55,46 @@ const Dashboard: React.FC<Props> = ({ churches, meetings }) => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-12">
+      <ModernInfographic 
+        items={dynamicZones} 
+        selectedItem={selectedZone} 
+        onSelect={setSelectedZone} 
+      />
+
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase">Vista Territorial</h2>
-        <div className="flex gap-2 overflow-x-auto max-w-md p-1 bg-white rounded-2xl border">
-          <button onClick={() => setSelectedZone('Todas')} className={`px-4 py-2 text-[9px] font-black rounded-xl uppercase transition-all ${selectedZone === 'Todas' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>Todas</button>
-          {dynamicZones.map(z => (<button key={z} onClick={() => setSelectedZone(z)} className={`px-4 py-2 text-[9px] font-black rounded-xl uppercase transition-all ${selectedZone === z ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{z}</button>))}
-        </div>
+        <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase">Estadísticas Detalladas</h2>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={<Users className="text-blue-600" />} title="Líderes" value={stats.totalChurches} color="bg-blue-50" />
-        <StatCard icon={<BookOpen className="text-amber-600" />} title="Libros" value={stats.totalBooks} color="bg-amber-50" />
-        <StatCard icon={<Calendar className="text-indigo-600" />} title="Grupos" value={stats.totalMeetings} color="bg-indigo-50" />
-        <StatCard icon={<CheckCircle className="text-emerald-600" />} title="Contacto" value={`${stats.totalChurches > 0 ? Math.round((stats.sentCount / stats.totalChurches) * 100) : 0}%`} color="bg-emerald-50" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <StatCard icon={<Users className="text-royal" />} title="Líderes" value={stats.totalChurches} color="bg-royal/10" />
+        <StatCard icon={<BookOpen className="text-amber" />} title="Libros" value={stats.totalBooks} color="bg-amber/10" />
+        <StatCard icon={<Calendar className="text-royal" />} title="Grupos" value={stats.totalMeetings} color="bg-indigo-100" />
+        <StatCard icon={<CheckCircle className="text-sea" />} title="Contacto" value={`${stats.totalChurches > 0 ? Math.round((stats.sentCount / stats.totalChurches) * 100) : 0}%`} color="bg-sea/10" />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border">
-          <h3 className="text-lg font-black mb-8 uppercase tracking-tighter">Distribución por Zona</h3>
-          <div className="h-[300px]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white p-10 rounded-[3rem] border subtle-shadow glossy-finish">
+          <h3 className="text-xl font-black mb-10 uppercase tracking-tighter">Distribución por Zona</h3>
+          <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.zoneChartData} layout="vertical">
+              <BarChart data={stats.zoneChartData} layout="vertical" margin={{ left: 20 }}>
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={100} fontSize={9} fontWeight="bold" />
-                <Tooltip />
-                <Bar dataKey="churches" fill="#3b82f6" radius={[0, 8, 8, 0]} />
+                <YAxis dataKey="name" type="category" width={100} fontSize={10} fontWeight="900" axisLine={false} tickLine={false} />
+                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }} />
+                <Bar dataKey="churches" fill="#4169E1" radius={[0, 12, 12, 0]} barSize={24} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border flex flex-col items-center">
-          <h3 className="text-lg font-black mb-8 w-full text-left uppercase tracking-tighter">Efectividad</h3>
-          <div className="h-[250px] w-full flex items-center justify-center relative">
+        <div className="bg-white p-10 rounded-[3rem] border subtle-shadow glossy-finish flex flex-col items-center">
+          <h3 className="text-xl font-black mb-10 w-full text-left uppercase tracking-tighter">Efectividad</h3>
+          <div className="h-[300px] w-full flex items-center justify-center relative">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart><Pie data={stats.statusChartData} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value">{stats.statusChartData.map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart>
+              <PieChart><Pie data={stats.statusChartData} cx="50%" cy="50%" innerRadius={85} outerRadius={110} paddingAngle={8} dataKey="value" stroke="none">{stats.statusChartData.map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }} /></PieChart>
             </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enviados</p>
+                <p className="text-4xl font-black text-slate-800 tracking-tighter">{Math.round((stats.sentCount / (stats.totalChurches || 1)) * 100)}%</p>
+            </div>
           </div>
         </div>
       </div>
@@ -96,9 +103,9 @@ const Dashboard: React.FC<Props> = ({ churches, meetings }) => {
 };
 
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: number | string; color: string }> = ({ icon, title, value, color }) => (
-  <div className="p-6 rounded-[1.5rem] shadow-sm border bg-white flex items-center gap-4">
-    <div className={`p-3 rounded-xl ${color}`}>{icon}</div>
-    <div><p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{title}</p><p className="text-2xl font-black text-slate-800 tracking-tighter">{value}</p></div>
+  <div className="p-8 rounded-[2rem] border bg-white flex items-center gap-6 subtle-shadow transition-transform hover:-translate-y-1 duration-300">
+    <div className={`w-16 h-16 rounded-2xl ${color} flex items-center justify-center shadow-inner`}>{icon}</div>
+    <div><p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">{title}</p><p className="text-3xl font-black text-slate-800 tracking-tighter">{value}</p></div>
   </div>
 );
 export default Dashboard;

@@ -7,7 +7,7 @@ import {
   Menu, Bell, Waves, ArrowLeft, MessageCircle, Calendar, X,
   ExternalLink, Trash2, Loader2, Sparkles, AlertTriangle, ChevronDown, 
   CheckCircle2, Users, Download, Upload, ShieldCheck, Zap, GraduationCap,
-  LayoutGrid, TrendingUp
+  LayoutGrid, TrendingUp, Copy, Clipboard
 } from 'lucide-react';
 
 // --- Error Boundary Component ---
@@ -55,6 +55,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
     return this.props.children;
   }
 }
+import { copyToClipboard } from './src/lib/clipboard';
 import { ViewType, ChurchLeader, Meeting, ContactStatus, WeeklyPlan, TrainingChurch, Cluster } from './types';
 import { INITIAL_CHURCHES, INITIAL_MEETINGS } from './constants';
 import { weeklyPlanData as initialWeeklyPlan, churchesData as initialChurches, clustersData as initialClusters } from './data';
@@ -106,6 +107,7 @@ interface GroupConfig {
   time: string;
   template: string;
   lastIndex?: number; // Persistencia de en qué mensaje se quedó el usuario
+  messageMode?: 'individual' | 'group';
 }
 
 const App: React.FC = () => {
@@ -245,6 +247,62 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDeleteChurch = (churchId: string) => {
+    const church = churches.find(c => c.id === churchId);
+    setItemToDelete({
+      type: 'church',
+      id: churchId,
+      label: church ? `${church.fullName} (${church.churchName})` : 'este líder'
+    });
+  };
+
+  const confirmDeleteChurch = async (churchId: string) => {
+    setChurches(prev => prev.filter(c => c.id !== churchId));
+    
+    if (user) {
+      try {
+        await deleteDoc(doc(db, 'churches', churchId));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `churches/${churchId}`);
+      }
+    }
+    setItemToDelete(null);
+  };
+
+  const handleDeleteMeetingGroup = (zone: string, meetingId: string) => {
+    setItemToDelete({
+      type: 'meeting',
+      zone,
+      meetingId,
+      label: `${meetingId} en ${zone}`
+    });
+  };
+
+  const confirmDeleteMeetingGroup = async (zone: string, meetingId: string) => {
+    const churchesToDelete = churches.filter(c => c.zone === zone && c.meetingId === meetingId);
+    const churchIdsToDelete = churchesToDelete.map(c => c.id);
+
+    setChurches(prev => prev.filter(c => !churchIdsToDelete.includes(c.id)));
+    setMeetings(prev => prev.filter(m => !(m.id === meetingId && m.zone === zone)));
+
+    if (user) {
+      try {
+        const batch = writeBatch(db);
+        churchIdsToDelete.forEach(id => {
+          batch.delete(doc(db, 'churches', id));
+        });
+        const meetingDocId = meetings.find(m => m.id === meetingId && m.zone === zone)?.id;
+        if (meetingDocId) {
+          batch.delete(doc(db, 'meetings', meetingDocId));
+        }
+        await batch.commit();
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `bulk-meeting-delete-${meetingId}`);
+      }
+    }
+    setItemToDelete(null);
+  };
+
   const [currentView, setCurrentView] = useState<ViewType>(() => {
     try {
       const saved = localStorage.getItem(UI_STATE_STORAGE_KEY);
@@ -267,6 +325,13 @@ const App: React.FC = () => {
     return true;
   });
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ 
+    type: 'church' | 'meeting'; 
+    id?: string; 
+    zone?: string; 
+    meetingId?: string;
+    label: string;
+  } | null>(null);
   const [lastSaved, setLastSaved] = useState<string>(() => new Date().toLocaleTimeString());
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -293,7 +358,7 @@ const App: React.FC = () => {
       const saved = localStorage.getItem('ecosistema_peces_default_config_v1');
       if (saved !== null) return JSON.parse(saved);
     } catch (e) {}
-    return { venue: '', date: '', time: '', template: '', lastIndex: 0 };
+    return { venue: '', date: '', time: '', template: '', lastIndex: 0, messageMode: 'individual' };
   });
   
   const [meetings, setMeetings] = useState<Meeting[]>(() => {
@@ -327,7 +392,10 @@ const App: React.FC = () => {
   const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
   const [isBulkSending, setIsBulkSending] = useState(false);
   const [currentQueueIndex, setCurrentQueueIndex] = useState(0);
+  const [messageMode, setMessageMode] = useState<'individual' | 'group'>('individual');
   
+  const lastManualChange = useRef(0);
+
   const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
     const errInfo: FirestoreErrorInfo = {
       error: error instanceof Error ? error.message : String(error),
@@ -442,7 +510,16 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(meetings));
     setLastSaved(new Date().toLocaleTimeString());
-  }, [meetings]);
+    
+    // Sync to cloud if user is logged in and not currently syncing from cloud
+    if (user && !isSyncing) {
+        const batch = writeBatch(db);
+        meetings.forEach(m => {
+           batch.set(doc(db, 'meetings', m.id), m);
+        });
+        batch.commit().catch(err => console.error("Error syncing meetings to cloud", err));
+    }
+  }, [meetings, user, isSyncing]);
 
   useEffect(() => {
     localStorage.setItem('ecosistema_peces_default_config_v1', JSON.stringify(defaultConfig));
@@ -682,7 +759,7 @@ const App: React.FC = () => {
         time: currentConfig.time,
         venue: currentConfig.venue,
         zone: activeGroup.zone
-      });
+      }, messageMode);
       updateActiveConfig({ template });
     } catch (err) {
       alert("Error con la IA.");
@@ -692,39 +769,71 @@ const App: React.FC = () => {
   };
 
   const sendNextInQueue = () => {
-    const church = filteredChurchesForGroup[currentQueueIndex];
-    if (!church || !activeGroup) return;
+    const queue = filteredChurchesForGroup;
+    if (queue.length === 0 || !activeGroup) return;
     
-    const msg = parseTemplate(currentConfig.template, church, {
-      id: activeGroup.meetingId,
-      name: activeGroup.meetingId,
-      date: currentConfig.date,
-      time: currentConfig.time,
-      venue: currentConfig.venue,
-      zone: activeGroup.zone
-    });
+    const church = queue[currentQueueIndex];
+    if (!church) {
+      // Si por alguna razón el índice es inválido (ej. se borraron iglesias), reiniciamos
+      setCurrentQueueIndex(0);
+      return;
+    }
     
-    const phone = church.whatsapp.toString().replace(/\D/g, '');
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-    
-    handleSent(church.id);
-    
-    const nextIdx = currentQueueIndex + 1;
-    if (nextIdx < filteredChurchesForGroup.length) {
-      setCurrentQueueIndex(nextIdx);
-      updateActiveConfig({ lastIndex: nextIdx });
-    } else {
-      setIsBulkSending(false);
-      updateActiveConfig({ lastIndex: 0 }); // Reiniciar al completar
-      alert("¡Envío masivo completado!");
+    try {
+      const defaultConfig = {
+        venue: '',
+        date: '',
+        time: '',
+        template: `Hola *{{nombre_completo}}*,\n\nTe saludo desde el equipo administrativo de "Ecosistema Peces". Te escribo para confirmarte que el próximo *{{fecha}}* a las *{{hora}}* tendremos nuestra reunión de *{{reunion_asignada}}* en *{{sede}}*.\n\nContamos con tu presencia.\n\nBendiciones.`,
+        lastIndex: 0
+      };
+      
+      const msg = parseTemplate(currentConfig.template || defaultConfig.template, church, {
+        id: activeGroup.meetingId,
+        name: activeMeetingName,
+        date: currentConfig.date || defaultConfig.date,
+        time: currentConfig.time || defaultConfig.time,
+        venue: currentConfig.venue || defaultConfig.venue,
+        zone: activeGroup.zone
+      });
+      
+      const phoneInput = church.whatsapp || '';
+      let phone = phoneInput.toString().replace(/\D/g, '');
+      
+      // Dominican Republic / NANP specific: if 10 digits starting with 8, prepend 1
+      if (phone.length === 10 && (phone.startsWith('809') || phone.startsWith('829') || phone.startsWith('849'))) {
+        phone = '1' + phone;
+      }
+      
+      if (phone.length < 5) {
+        alert(`No se detectó un número de WhatsApp válido para ${church.fullName}. Por favor revisa el número: ${phoneInput}`);
+        return;
+      }
+
+      const encodedMsg = encodeURIComponent(msg);
+      window.open(`https://wa.me/${phone}?text=${encodedMsg}`, '_blank');
+      handleSent(church.id);
+      
+      const nextIdx = currentQueueIndex + 1;
+      if (nextIdx < queue.length) {
+        setCurrentQueueIndex(nextIdx);
+        updateActiveConfig({ lastIndex: nextIdx });
+      } else {
+        setIsBulkSending(false);
+        updateActiveConfig({ lastIndex: 0 }); // Reiniciar al completar
+        alert("¡Envío masivo completado!");
+      }
+    } catch (error) {
+      console.error("Error en sendNextInQueue:", error);
+      alert("Hubo un error al procesar el mensaje. Por favor revisa la plantilla.");
     }
   };
 
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard churches={churches} meetings={meetings} />;
-      case 'churches': return <ChurchManagement churches={churches} meetings={meetings} onOpenMessenger={handleOpenMessenger} onAddChurch={handleAddChurch} onBulkImport={handleBulkImport} />;
-      case 'meetings': return <MeetingManagement meetings={meetings} churches={churches} onSelectGroup={(zone, mId) => { 
+      case 'churches': return <ChurchManagement churches={churches} meetings={meetings} onOpenMessenger={handleOpenMessenger} onAddChurch={handleAddChurch} onBulkImport={handleBulkImport} onDeleteChurch={handleDeleteChurch} />;
+      case 'meetings': return <MeetingManagement meetings={meetings} churches={churches} onDeleteGroup={handleDeleteMeetingGroup} onSelectGroup={(zone, mId) => { 
         setActiveGroup({ zone, meetingId: mId }); 
         const configKey = sanitizeId(`${zone}-${mId}`);
         
@@ -734,6 +843,12 @@ const App: React.FC = () => {
           setCurrentQueueIndex(savedConfig.lastIndex);
         } else {
           setCurrentQueueIndex(0);
+        }
+
+        if (savedConfig?.messageMode) {
+          setMessageMode(savedConfig.messageMode);
+        } else {
+          setMessageMode('individual');
         }
 
         // Pre-llenado automático de sede si está vacía
@@ -759,19 +874,41 @@ const App: React.FC = () => {
       }} />;
       case 'meeting-detail': return (
         <div className="space-y-8 animate-in slide-in-from-right duration-500 pb-24">
-          <button onClick={() => setCurrentView('meetings')} className="flex items-center gap-2 text-slate-400 hover:text-slate-800 font-black text-xs uppercase tracking-widest transition-colors"><ArrowLeft className="w-4 h-4" /> Volver al Calendario</button>
+          <button 
+            onClick={() => setCurrentView('meetings')} 
+            className="group flex items-center gap-3 px-6 py-3 bg-white text-royal rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg border border-royal/10 hover:bg-royal hover:text-white transition-all duration-300 glossy-finish"
+          >
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> 
+            Volver al Calendario
+          </button>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
               <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 sticky top-32">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Logística Grupal</h3>
+                  <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Comunicación</h3>
                   <div className="px-3 py-1 bg-emerald-50 rounded-full text-[8px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Memoria Activa</div>
+                </div>
+
+                {/* SELECTOR DE MODO */}
+                <div className="grid grid-cols-2 p-1.5 bg-slate-50 rounded-2xl border border-slate-100 mb-8">
+                  <button 
+                    onClick={() => { setMessageMode('individual'); updateActiveConfig({ messageMode: 'individual' }); }}
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${messageMode === 'individual' ? 'bg-white text-royal shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    <Church className="w-3.5 h-3.5" /> 1 a 1 (Individual)
+                  </button>
+                  <button 
+                    onClick={() => { setMessageMode('group'); updateActiveConfig({ messageMode: 'group' }); }}
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${messageMode === 'group' ? 'bg-white text-royal shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    <Users className="w-3.5 h-3.5" /> Grupo WhatsApp
+                  </button>
                 </div>
                 
                 <div className="space-y-5">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Sede</label>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Sede de Reunión</label>
                     <input 
                       type="text" 
                       placeholder="Ubicación de la sede..." 
@@ -816,19 +953,57 @@ const App: React.FC = () => {
                   />
 
                   <div className="space-y-3">
-                    <button 
-                      onClick={() => setIsBulkSending(true)} 
-                      disabled={!currentConfig.template || !currentConfig.venue} 
-                      className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      {currentConfig.lastIndex && currentConfig.lastIndex > 0 ? `Continuar Despacho (${currentConfig.lastIndex + 1}/${filteredChurchesForGroup.length})` : `Iniciar Despacho (${filteredChurchesForGroup.length})`}
-                    </button>
-                    {currentConfig.lastIndex && currentConfig.lastIndex > 0 && (
+                    {messageMode === 'individual' ? (
+                      <>
+                        <button 
+                          onClick={() => setIsBulkSending(true)} 
+                          disabled={!currentConfig.template || !currentConfig.venue} 
+                          className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                        >
+                          <Zap className="w-4 h-4" />
+                          {currentConfig.lastIndex && currentConfig.lastIndex > 0 ? `Continuar Despacho (${currentConfig.lastIndex + 1}/${filteredChurchesForGroup.length})` : `Iniciar Despacho (${filteredChurchesForGroup.length})`}
+                        </button>
+                        {currentConfig.lastIndex && currentConfig.lastIndex > 0 && (
+                          <button 
+                            onClick={() => { setCurrentQueueIndex(0); updateActiveConfig({ lastIndex: 0 }); setIsBulkSending(true); }}
+                            className="w-full py-2 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                          >
+                            Reiniciar desde el primero
+                          </button>
+                        )}
+                      </>
+                    ) : (
                       <button 
-                        onClick={() => { setCurrentQueueIndex(0); updateActiveConfig({ lastIndex: 0 }); setIsBulkSending(true); }}
-                        className="w-full py-2 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                        onClick={() => {
+                          const msg = parseTemplate(currentConfig.template, {
+                            id: 'group',
+                            fullName: 'Líderes',
+                            whatsapp: '',
+                            email: '',
+                            churchName: '',
+                            community: '',
+                            zone: activeGroup?.zone || '',
+                            meetingId: activeGroup?.meetingId || '',
+                            status: ContactStatus.PENDING,
+                            booksCount: 0,
+                            responsibleEntity: ''
+                          }, {
+                            id: activeGroup?.meetingId || '',
+                            name: activeMeetingName,
+                            date: currentConfig.date,
+                            time: currentConfig.time,
+                            venue: currentConfig.venue,
+                            zone: activeGroup?.zone || ''
+                          });
+                          
+                          copyToClipboard(msg);
+                          alert("Mensaje copiado. Selecciona tu grupo en WhatsApp y pégalo.");
+                          window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                        }} 
+                        disabled={!currentConfig.template || !currentConfig.venue} 
+                        className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
                       >
-                        Reiniciar desde el primero
+                        <MessageCircle className="w-5 h-5" /> Enviar al Grupo WhatsApp
                       </button>
                     )}
                   </div>
@@ -935,13 +1110,19 @@ const App: React.FC = () => {
                         </div>
                       </div>
                       
-                      <button 
-                        onClick={sendNextInQueue} 
-                        className="w-full py-8 bg-emerald-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all group"
-                      >
-                        <ExternalLink className="w-6 h-6 group-hover:rotate-12 transition-transform" /> 
-                        Abrir WhatsApp y Continuar ({currentQueueIndex + 1}/{filteredChurchesForGroup.length})
-                      </button>
+                      <div className="flex flex-col gap-4">
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            sendNextInQueue();
+                          }} 
+                          className="w-full py-8 bg-emerald-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all group lg:animate-bounce-subtle"
+                        >
+                          <ExternalLink className="w-6 h-6 group-hover:rotate-12 transition-transform" /> 
+                          Continuar Despacho Individual ({currentQueueIndex + 1}/{filteredChurchesForGroup.length})
+                        </button>
+                        
+                      </div>
                     </div>
 
                     <div className="relative group">
@@ -965,16 +1146,40 @@ const App: React.FC = () => {
           )}
         </div>
       );
-      case 'whatsapp': return <div className="space-y-6 h-full flex flex-col"><button onClick={() => setCurrentView(prevView)} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest transition-colors"><ArrowLeft className="w-4 h-4" /> Volver</button><WhatsAppMessenger church={selectedChurch} meeting={meetings.find(m => m.id === selectedChurch?.meetingId) || { id: 't', name: 'R', date: '', time: '', venue: '', zone: '' }} onSent={handleSent} onBack={() => setCurrentView(prevView)} /></div>;
+      case 'whatsapp': {
+        const currentMeeting = selectedChurch 
+          ? meetings.find(m => m.id === selectedChurch.meetingId)
+          : (activeGroup ? meetings.find(m => m.id === activeGroup.meetingId) : undefined);
+        
+        const currentMeetingChurches = activeGroup 
+          ? churches.filter(c => c.zone === activeGroup.zone && c.meetingId === activeGroup.meetingId)
+          : (selectedChurch ? churches.filter(c => c.meetingId === selectedChurch.meetingId) : []);
+
+        return (
+          <div className="space-y-6 h-full flex flex-col">
+            <button onClick={() => setCurrentView(prevView)} className="group flex items-center gap-3 px-6 py-3 bg-white text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-sm border border-slate-100 hover:bg-slate-50 transition-all">
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
+              Volver
+            </button>
+            <WhatsAppMessenger 
+              church={selectedChurch} 
+              meeting={currentMeeting} 
+              churches={currentMeetingChurches}
+              onSent={handleSent} 
+              onBack={() => setCurrentView(prevView)} 
+            />
+          </div>
+        );
+      }
       case 'capacitacion': return (
         <div className="w-full flex flex-col items-center py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="max-w-2xl w-full bg-white rounded-[3rem] p-12 border border-slate-100 shadow-2xl text-center relative overflow-hidden group">
+          <div className="max-w-2xl w-full bg-white rounded-[3rem] p-12 border border-slate-100 shadow-2xl text-center relative overflow-hidden group subtle-shadow glossy-finish">
             {/* Elementos decorativos de fondo */}
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-50 rounded-full blur-3xl group-hover:bg-blue-100 transition-colors duration-500" />
-            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-50 rounded-full blur-3xl group-hover:bg-indigo-100 transition-colors duration-500" />
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-royal/5 rounded-full blur-3xl group-hover:bg-royal/10 transition-colors duration-500" />
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-slate-50 rounded-full blur-3xl group-hover:bg-slate-100 transition-colors duration-500" />
             
             <div className="relative z-10 flex flex-col items-center">
-              <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-blue-200 mb-8 transform group-hover:scale-110 transition-transform duration-500">
+              <div className="w-24 h-24 bg-royal rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-royal/30 mb-8 transform group-hover:scale-110 transition-all duration-500 glossy-finish">
                 <GraduationCap className="w-12 h-12" />
               </div>
               
@@ -987,13 +1192,13 @@ const App: React.FC = () => {
               </p>
 
               <div className="grid grid-cols-2 gap-4 w-full mb-10">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="text-blue-600 font-black text-xl mb-1">12+</div>
+                <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 min-h-[140px] flex flex-col justify-center">
+                  <div className="text-royal font-black text-3xl mb-1">12+</div>
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Módulos</div>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="text-blue-600 font-black text-xl mb-1">Certificado</div>
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Al finalizar</div>
+                <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 min-h-[140px] flex flex-col justify-center">
+                  <div className="text-sea font-black text-2xl mb-1 leading-none">CERTIFICADO</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Al finalizar</div>
                 </div>
               </div>
 
@@ -1001,7 +1206,7 @@ const App: React.FC = () => {
                 href="https://ais-pre-um7xhy3ztstywl4vne5mvp-90346729134.us-west2.run.app" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-full py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-blue-200 transition-all hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-3"
+                className="w-full py-6 bg-royal hover:bg-royal/90 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-royal/30 transition-all hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-3 active:scale-95 glossy-finish"
               >
                 Comenzar Entrenamiento
                 <ExternalLink className="w-5 h-5" />
@@ -1160,7 +1365,6 @@ const App: React.FC = () => {
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: 'churches', label: 'Iglesias', icon: <Church className="w-5 h-5" /> },
     { id: 'meetings', label: 'Calendario', icon: <CalendarDays className="w-5 h-5" /> },
-    { id: 'whatsapp', label: 'Mensajería', icon: <MessageSquareText className="w-5 h-5" /> },
     { id: 'capacitacion', label: 'Capacitación', icon: <GraduationCap className="w-5 h-5" /> },
     { id: 'capacitacion-b', label: 'Capacitación B', icon: <GraduationCap className="w-5 h-5" /> },
     { id: 'aulaapp', label: 'AulaApp', icon: <GraduationCap className="w-5 h-5" /> },
@@ -1170,17 +1374,21 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
-      <aside className={`${isSidebarOpen ? 'w-72' : 'w-24'} bg-white border-r flex flex-col h-full transition-all duration-300 z-[100]`}>
-        <div className="p-8 flex items-center gap-4 shrink-0">
-          <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-lg shrink-0"><Waves className="w-6 h-6" /></div>
-          {isSidebarOpen && <span className="font-black text-slate-800 text-xl tracking-tighter uppercase">Peces<span className="text-blue-600">.io</span></span>}
+    <div className="flex h-screen bg-academic-bg overflow-hidden font-sans relative">
+      <div className="geometric-shape top-20 left-[20%] w-24 h-24 border-8 border-royal/5 rounded-full animate-pulse" />
+      <div className="geometric-shape bottom-20 right-[10%] w-32 h-32 border-[12px] border-amber/5 rotate-12" />
+      <div className="geometric-shape top-[40%] right-[30%] w-12 h-12 bg-sea/5 rotate-45" />
+
+      <aside className={`${isSidebarOpen ? 'w-80' : 'w-24'} bg-white border-r flex flex-col h-full transition-all duration-500 z-[100] shadow-2xl shadow-slate-200/50`}>
+        <div className="p-10 flex items-center gap-5 shrink-0 bg-white">
+          <div className="bg-royal p-3 rounded-2xl text-white shadow-xl shadow-royal/30 shrink-0 glossy-finish"><Waves className="w-7 h-7" /></div>
+          {isSidebarOpen && <span className="font-black text-slate-800 text-2xl tracking-tighter uppercase leading-none">Peces<span className="text-royal">.io</span></span>}
         </div>
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-5 py-6 space-y-2 overflow-y-auto">
           {menuItems.map((item) => (
-            <button key={item.id} onClick={() => setCurrentView(item.id as ViewType)} className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all ${(currentView === item.id || (item.id === 'meetings' && currentView === 'meeting-detail')) ? 'bg-slate-900 text-white font-black' : 'hover:bg-slate-50 text-slate-400 font-bold'}`}>
-              <div className={(currentView === item.id || (item.id === 'meetings' && currentView === 'meeting-detail')) ? 'text-blue-400' : ''}>{item.icon}</div>
-              {isSidebarOpen && <span className="text-xs uppercase tracking-widest">{item.label}</span>}
+            <button key={item.id} onClick={() => setCurrentView(item.id as ViewType)} className={`w-full flex items-center gap-5 px-5 py-5 rounded-[1.5rem] transition-all duration-300 ${(currentView === item.id || (item.id === 'meetings' && currentView === 'meeting-detail')) ? 'bg-royal text-white font-black shadow-xl shadow-royal/20 glossy-finish' : 'hover:bg-slate-50 text-slate-400 font-bold'}`}>
+              <div className={(currentView === item.id || (item.id === 'meetings' && currentView === 'meeting-detail')) ? 'text-white' : ''}>{item.icon}</div>
+              {isSidebarOpen && <span className="text-[10px] uppercase tracking-widest">{item.label}</span>}
             </button>
           ))}
           
@@ -1237,15 +1445,15 @@ const App: React.FC = () => {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-24 bg-white/80 backdrop-blur-md border-b flex items-center justify-between px-10 shrink-0 sticky top-0 z-40">
-          <div className="flex items-center gap-6">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-3 hover:bg-slate-50 rounded-2xl text-slate-400 transition-colors"><Menu className="w-6 h-6" /></button>
+      <main className="flex-1 flex flex-col min-w-0 relative z-10">
+        <header className="h-28 bg-white/70 backdrop-blur-xl border-b flex items-center justify-between px-12 shrink-0 sticky top-0 z-40">
+          <div className="flex items-center gap-8">
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-4 hover:bg-slate-50 rounded-2xl text-slate-400 transition-all subtle-shadow"><Menu className="w-6 h-6" /></button>
             <div className="flex flex-col">
-              <h1 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none">{currentView === 'meeting-detail' ? 'Despacho Grupal' : menuItems.find(i => i.id === currentView)?.label}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <div className={`w-1.5 h-1.5 rounded-full ${user ? 'bg-blue-500' : 'bg-emerald-500'} animate-pulse`}></div>
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">
+              <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">{currentView === 'meeting-detail' ? 'Despacho Grupal' : menuItems.find(i => i.id === currentView)?.label}</h1>
+              <div className="flex items-center gap-2.5 mt-2">
+                <div className={`w-2 h-2 rounded-full ${user ? 'bg-royal' : 'bg-sea'} animate-pulse`}></div>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
                   {user ? `Cloud: ${cloudCount.churches} / Local: ${churches.length} (${user.email})` : `Solo Local: ${lastSaved}`}
                   {isSyncing && ' (Sincronizando...)'}
                 </span>
@@ -1277,7 +1485,7 @@ const App: React.FC = () => {
             )}
           </div>
         </header>
-        <div className="flex-1 overflow-y-auto p-10 bg-[#fbfcfd]">
+        <div className="flex-1 overflow-y-auto p-12 bg-transparent">
           <div className="max-w-7xl mx-auto">{renderContent()}</div>
         </div>
       </main>
@@ -1307,6 +1515,33 @@ const App: React.FC = () => {
             <div className="flex flex-col gap-3">
               <button onClick={handleClearExcelData} className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-red-700 transition-all">Sí, borrar base</button>
               <button onClick={() => setIsDeleteModalOpen(false)} className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {itemToDelete && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-slate-900/90 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden p-8 text-center animate-in zoom-in-95">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6"><Trash2 className="w-10 h-10" /></div>
+            <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-4">Eliminar {itemToDelete.type === 'church' ? 'Líder' : 'Grupo'}</h3>
+            <p className="text-slate-500 font-bold text-sm leading-relaxed mb-8">
+              ¿Seguro que deseas eliminar <span className="text-slate-800 font-black">"{itemToDelete.label}"</span>?
+              {itemToDelete.type === 'meeting' && (
+                <span className="block mt-2 text-amber-600">Esto eliminará a todos los líderes asociados.</span>
+              )}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                  if (itemToDelete.type === 'church' && itemToDelete.id) confirmDeleteChurch(itemToDelete.id);
+                  if (itemToDelete.type === 'meeting' && itemToDelete.zone && itemToDelete.meetingId) confirmDeleteMeetingGroup(itemToDelete.zone, itemToDelete.meetingId);
+                }} 
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-red-700 transition-all active:scale-95"
+              >
+                Confirmar Eliminación
+              </button>
+              <button onClick={() => setItemToDelete(null)} className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
             </div>
           </div>
         </div>

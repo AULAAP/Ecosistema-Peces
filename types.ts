@@ -15,6 +15,7 @@ export interface Meeting {
   coordinates?: string;
   zone: string;
   description?: string;
+  groupLink?: string; // Enlace del grupo de WhatsApp
 }
 
 export interface ChurchLeader {

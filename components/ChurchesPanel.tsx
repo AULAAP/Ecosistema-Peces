@@ -45,122 +45,129 @@ const ChurchesPanel: React.FC<ChurchesPanelProps> = ({
     };
 
     return (
-        <div className="bg-white/80 backdrop-blur-md rounded-[3rem] shadow-2xl p-10 border border-white/60 max-w-4xl mx-auto relative animate-in fade-in duration-700">
+        <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 p-12 max-w-4xl mx-auto relative animate-in fade-in slide-in-from-bottom-6 duration-700 subtle-shadow glossy-finish">
             
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 pb-8 border-b border-slate-100 gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 pb-10 border-b border-slate-50 gap-8">
                 <div>
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Iglesias del Clúster</h3>
-                    <p className="text-slate-500 font-medium">Gestiona y monitorea cada congregación de la zona</p>
+                    <h3 className="text-4xl font-black text-slate-800 tracking-tighter uppercase leading-none mb-2">Iglesias del Clúster</h3>
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Gestión dinámica de congregaciones locales</p>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-4">
                     <button
                         onClick={onSelectClusterPlan}
-                        className="flex items-center gap-2 px-6 py-3 text-xs font-black uppercase tracking-widest text-white bg-gradient-to-r from-teal-500 to-emerald-600 rounded-2xl hover:from-teal-400 hover:to-emerald-500 transition-all shadow-xl shadow-emerald-500/20 active:scale-95"
+                        className="flex items-center gap-3 px-8 py-4 text-xs font-black uppercase tracking-[0.1em] text-white bg-sea rounded-[1.25rem] hover:bg-sea/90 transition-all shadow-xl shadow-sea/20 active:scale-95 glossy-finish"
                     >
-                        <Youtube className="w-4 h-4" />
+                        <Youtube className="w-5 h-5" />
                         Capacitación Grupal
                     </button>
                     {!isAdding && (
                          <button
                             onClick={() => setIsAdding(true)}
-                            className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-700 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+                            className="flex items-center gap-3 px-8 py-4 text-xs font-black uppercase tracking-[0.1em] text-slate-800 bg-white border border-slate-200 rounded-[1.25rem] hover:bg-slate-50 transition-all shadow-sm active:scale-95 subtle-shadow"
                         >
-                            <Plus className="w-4 h-4 mr-2 inline" /> Nueva Iglesia
+                            <Plus className="w-5 h-5 text-royal" /> Nueva Iglesia
                         </button>
                     )}
                 </div>
             </div>
 
-            <div className="mb-10 p-6 bg-indigo-50/50 border border-indigo-100 rounded-[2rem] flex items-start gap-4">
-                <div className="bg-indigo-100 p-3 rounded-2xl text-indigo-600">
-                    <Info className="w-6 h-6" />
+            <div className="mb-12 p-8 bg-royal/5 border border-royal/10 rounded-[2.5rem] flex items-start gap-5 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-royal/10 blur-3xl -mr-16 -mt-16 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <div className="bg-white p-4 rounded-2xl text-royal shadow-sm relative z-10 shrink-0">
+                    <Info className="w-7 h-7" />
                 </div>
-                <p className="text-xs text-indigo-800 leading-relaxed font-medium">
-                    Usa <strong className="font-black">Capacitación Grupal</strong> para marcar lecciones que se imparten a todos los líderes de la zona al mismo tiempo. Esto actualizará el progreso de <span className="font-black underline">todas</span> las iglesias del clúster simultáneamente.
-                </p>
+                <div className="relative z-10">
+                    <p className="text-[11px] text-royal font-black uppercase tracking-widest mb-2">Protocolo de sincronización</p>
+                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                        La <strong className="text-slate-900">Capacitación Grupal</strong> permite registrar hitos pedagógicos simultáneos. Al certificar una lección aquí, el progreso se replicará en <span className="font-black text-royal decoration-royal/30">todas las iglesias</span> del clúster automáticamente.
+                    </p>
+                </div>
             </div>
 
             {isAdding && (
-                <div className="mb-10 p-8 bg-white rounded-[2.5rem] border border-indigo-100 shadow-xl animate-in zoom-in-95 duration-300">
-                    <form onSubmit={handleAddSubmit} className="space-y-4">
-                        <label className="block text-[10px] font-black text-indigo-900 uppercase tracking-widest ml-2">
-                            Nombre de la Iglesia
+                <div className="mb-12 p-10 bg-white rounded-[3rem] border border-slate-100 shadow-2xl animate-in zoom-in-95 duration-500 subtle-shadow glossy-finish">
+                    <form onSubmit={handleAddSubmit} className="space-y-6">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">
+                            Identificación de la Congregación
                         </label>
                         <div className="flex flex-col md:flex-row gap-4">
                             <input
                                 type="text"
                                 value={newName}
                                 onChange={(e) => setNewName(e.target.value)}
-                                placeholder="Ej: Templo Betania"
-                                className="flex-grow px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:ring-4 focus:ring-indigo-50 transition-all"
+                                placeholder="Nombre comercial de la iglesia..."
+                                className="flex-grow px-8 py-5 bg-slate-50 border border-slate-100 rounded-[1.5rem] outline-none font-black uppercase tracking-widest text-xs text-slate-700 focus:ring-4 focus:ring-royal/5 focus:bg-white transition-all shadow-inner"
                                 required
                                 autoFocus
                             />
-                            <div className="flex gap-2">
-                                <button type="submit" className="flex-grow px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all">Guardar</button>
-                                <button type="button" onClick={() => setIsAdding(false)} className="px-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">Cancelar</button>
+                            <div className="flex gap-3">
+                                <button type="submit" className="flex-grow px-10 py-5 bg-royal text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-royal/90 transition-all glossy-finish">Guardar</button>
+                                <button type="button" onClick={() => setIsAdding(false)} className="px-10 py-5 bg-slate-100 text-slate-500 rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">Cancelar</button>
                             </div>
                         </div>
                     </form>
                 </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-6">
                 {churches.map(church => {
                     const progress = getChurchProgress(church.id);
                     const isSelected = selectedChurchId === church.id;
                     
                     return (
-                        <div key={church.id} className="flex items-center gap-4 group">
+                        <div key={church.id} className="flex items-center gap-6 group">
                             <button
                                 onClick={() => onSelectChurch(church)}
-                                className={`flex-grow text-left p-6 rounded-[2rem] transition-all duration-500 border flex items-center gap-6 relative overflow-hidden
+                                className={`flex-grow text-left p-8 rounded-[3rem] transition-all duration-700 border flex items-center gap-8 relative overflow-hidden subtle-shadow
                                     ${isSelected
-                                        ? 'bg-gradient-to-r from-indigo-50 to-white border-indigo-200 shadow-2xl translate-x-2' 
-                                        : 'bg-white/60 border-white/40 hover:bg-white hover:border-indigo-100 hover:shadow-xl hover:scale-[1.01] backdrop-blur-sm'
+                                        ? 'bg-white border-royal shadow-2xl shadow-royal/10 translate-x-4 ring-2 ring-royal/5' 
+                                        : 'bg-white border-slate-100 hover:border-royal/30 hover:shadow-xl hover:scale-[1.01] glossy-finish'
                                     }`
                                 }
                             >
-                                {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500" />}
+                                {isSelected && <div className="absolute left-0 top-0 bottom-0 w-2 bg-royal glossy-finish" />}
                                 
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg ${isSelected ? 'bg-indigo-600 text-white' : 'bg-white text-slate-300 group-hover:bg-indigo-50 group-hover:text-indigo-600'}`}>
-                                    <Church className="w-7 h-7" />
+                                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all duration-700 shadow-sm ${isSelected ? 'bg-royal text-white rotate-6' : 'bg-slate-50 text-slate-300 group-hover:bg-royal/10 group-hover:text-royal'}`}>
+                                    <Church className="w-8 h-8" />
                                 </div>
                                 
                                 <div className="flex-grow min-w-0">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className={`font-black text-lg uppercase tracking-tight truncate ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{church.name}</span>
-                                        {isSelected && <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-600 text-[8px] font-black uppercase tracking-widest animate-pulse">Activa</span>}
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <span className={`font-black text-xl uppercase tracking-tighter truncate ${isSelected ? 'text-royal' : 'text-slate-800'}`}>{church.name}</span>
+                                            {progress.percentage === 100 && <div className="w-5 h-5 bg-sea/10 rounded-full flex items-center justify-center"><RotateCcw className="w-3 h-3 text-sea" /></div>}
+                                        </div>
+                                        {isSelected && <span className="px-4 py-1.5 rounded-xl bg-royal/10 text-royal text-[9px] font-black uppercase tracking-[0.2em] animate-pulse border border-royal/10 shadow-sm">PANEL ACTIVO</span>}
                                     </div>
                                     
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex-grow bg-slate-100 rounded-full h-2.5 overflow-hidden shadow-inner border border-slate-200/50">
+                                    <div className="flex items-center gap-6">
+                                        <div className="flex-grow bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner border border-slate-50">
                                             <div 
-                                                className={`h-full rounded-full transition-all duration-1000 ${progress.percentage === 100 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}`}
+                                                className={`h-full rounded-full transition-all duration-1000 ${progress.percentage === 100 ? 'bg-sea shadow-lg shadow-sea/20' : 'bg-royal shadow-md shadow-royal/20'} glossy-finish`}
                                                 style={{ width: `${progress.percentage}%` }}
                                             />
                                         </div>
-                                        <span className="text-xs font-black text-slate-500 w-10 text-right">
+                                        <span className={`text-[12px] font-black w-12 text-right tracking-tighter ${isSelected ? 'text-royal' : 'text-slate-400'}`}>
                                             {Math.round(progress.percentage)}%
                                         </span>
                                     </div>
                                 </div>
                             </button>
 
-                            <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            <div className="flex flex-col gap-3 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all duration-500">
                                 <button 
                                     onClick={() => onResetChurchProgress(church.id)}
-                                    className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-colors shadow-sm border border-amber-100"
+                                    className="p-4 bg-white text-amber border border-slate-100 rounded-[1.25rem] hover:bg-amber hover:text-white transition-all shadow-sm hover:shadow-lg active:scale-90"
                                     title="Reiniciar Progreso"
                                 >
-                                    <RotateCcw className="w-4 h-4" />
+                                    <RotateCcw className="w-5 h-5" />
                                 </button>
                                 <button 
                                     onClick={() => onDeleteChurch(church.id)}
-                                    className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors shadow-sm border border-red-100"
+                                    className="p-4 bg-white text-red-400 border border-slate-100 rounded-[1.25rem] hover:bg-red-400 hover:text-white transition-all shadow-sm hover:shadow-lg active:scale-90"
                                     title="Eliminar Iglesia"
                                 >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-5 h-5" />
                                 </button>
                             </div>
                         </div>
@@ -168,12 +175,12 @@ const ChurchesPanel: React.FC<ChurchesPanelProps> = ({
                 })}
 
                 {churches.length === 0 && !isAdding && (
-                    <div className="text-center py-20 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200">
-                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                            <Church className="w-10 h-10 text-slate-200" />
+                    <div className="text-center py-24 bg-slate-50/50 rounded-[4rem] border-2 border-dashed border-slate-200">
+                        <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-sm text-slate-200">
+                            <Church className="w-12 h-12" />
                         </div>
-                        <h4 className="text-xl font-black text-slate-400 uppercase tracking-widest">No hay iglesias en este clúster</h4>
-                        <p className="text-slate-400 mt-2 font-medium">Comienza añadiendo la primera congregación</p>
+                        <h4 className="text-2xl font-black text-slate-300 uppercase tracking-tighter">Sin congregaciones locales</h4>
+                        <p className="text-slate-400 mt-3 font-bold uppercase tracking-widest text-[10px]">Crea la primera unidad operativa para este clúster</p>
                     </div>
                 )}
             </div>

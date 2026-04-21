@@ -42,81 +42,86 @@ const ClustersPanel: React.FC<ClustersPanelProps> = ({
     };
 
     return (
-        <div className="max-w-5xl mx-auto animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
+        <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
                 <div className="text-center md:text-left">
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">Gestión de Clústers</h2>
-                    <p className="text-slate-500 font-medium">Organiza y supervisa el avance de tus zonas pastorales</p>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-royal/10 text-royal rounded-full text-[9px] font-black uppercase tracking-widest mb-4 border border-royal/10">
+                        Infraestructura Territorial
+                    </div>
+                    <h2 className="text-5xl font-black text-slate-800 tracking-tighter mb-3 uppercase leading-none">Gestión de Clústers</h2>
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Estructura y supervisión de zonas pastorales</p>
                 </div>
                 <button 
                     onClick={() => setIsAdding(true)}
-                    className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-slate-200"
+                    className="flex items-center gap-3 px-10 py-5 bg-royal text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-royal/90 transition-all shadow-xl shadow-royal/20 active:scale-95 transform glossy-finish"
                 >
                     <Plus className="w-5 h-5" /> Nuevo Clúster
                 </button>
             </div>
 
             {isAdding && (
-                <div className="mb-12 p-8 bg-white rounded-[2.5rem] shadow-2xl border border-indigo-100 animate-in zoom-in-95 duration-300">
-                    <form onSubmit={handleAddSubmit} className="flex flex-col md:flex-row gap-4">
-                        <input 
-                            type="text" 
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                            placeholder="Nombre del nuevo clúster..."
-                            className="flex-grow px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:ring-4 focus:ring-indigo-50 transition-all"
-                            autoFocus
-                        />
-                        <div className="flex gap-2">
-                            <button type="submit" className="flex-grow md:flex-grow-0 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all">Guardar</button>
-                            <button type="button" onClick={() => setIsAdding(false)} className="px-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">Cancelar</button>
+                <div className="mb-12 p-10 bg-white rounded-[3rem] shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-500 subtle-shadow glossy-finish">
+                    <form onSubmit={handleAddSubmit} className="flex flex-col md:flex-row gap-6">
+                        <div className="flex-grow relative">
+                             <input 
+                                type="text" 
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                placeholder="Nombre del nuevo clúster (Ej: Zona Norte)..."
+                                className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2-xl outline-none font-black uppercase tracking-widest text-xs text-slate-700 focus:ring-4 focus:ring-royal/5 focus:bg-white transition-all rounded-[1.5rem]"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="flex gap-3">
+                            <button type="submit" className="flex-grow md:flex-grow-0 px-10 py-5 bg-royal text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-royal/90 transition-all glossy-finish">Guardar</button>
+                            <button type="button" onClick={() => setIsAdding(false)} className="px-10 py-5 bg-slate-100 text-slate-500 rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">Cancelar</button>
                         </div>
                     </form>
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {clusters.map((cluster) => {
                     const progress = getClusterProgress(cluster.id);
                     const isSelected = selectedClusterId === cluster.id;
                     
                     return (
-                        <div key={cluster.id} className={`group relative bg-white rounded-[2.5rem] p-8 border transition-all duration-500 ${isSelected ? 'border-indigo-500 shadow-2xl shadow-indigo-100 scale-[1.02]' : 'border-slate-100 shadow-xl hover:shadow-2xl hover:border-indigo-200'}`}>
-                            <div className="flex justify-between items-start mb-8">
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-500 ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600'}`}>
-                                    <LayoutGrid className="w-7 h-7" />
+                        <div key={cluster.id} className={`group relative bg-white rounded-[3rem] p-10 border transition-all duration-700 subtle-shadow glossy-finish ${isSelected ? 'border-royal shadow-2xl shadow-royal/10 scale-[1.02] z-10' : 'border-slate-100 hover:border-royal/30 hover:shadow-2xl hover:shadow-slate-100'}`}>
+                            <div className="flex justify-between items-start mb-10">
+                                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all duration-500 shadow-sm ${isSelected ? 'bg-royal text-white rotate-6' : 'bg-slate-50 text-slate-400 group-hover:bg-royal/5 group-hover:text-royal group-hover:-rotate-6'}`}>
+                                    <LayoutGrid className="w-8 h-8" />
                                 </div>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex gap-2">
                                     <button 
                                         onClick={() => onResetClusterProgress(cluster.id)}
-                                        className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-colors"
+                                        className="p-3 text-amber hover:bg-amber/10 rounded-xl transition-all hover:scale-110"
                                         title="Reiniciar Progreso"
                                     >
-                                        <RotateCcw className="w-4 h-4" />
+                                        <RotateCcw className="w-5 h-5" />
                                     </button>
                                     <button 
                                         onClick={() => onDeleteCluster(cluster.id)}
-                                        className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
+                                        className="p-3 text-red-400 hover:bg-red-50 rounded-xl transition-all hover:scale-110"
                                         title="Eliminar Clúster"
                                     >
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash2 className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
 
-                            <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-2">{cluster.name}</h3>
-                            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-8">
-                                <Users className="w-3 h-3" /> {cluster.churchIds.length} Iglesias Vinculadas
+                            <h3 className={`text-3xl font-black text-slate-800 uppercase tracking-tighter mb-2 transition-colors ${isSelected ? 'text-royal' : 'group-hover:text-royal'}`}>{cluster.name}</h3>
+                            <div className="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-10">
+                                <Users className="w-4 h-4 text-royal opacity-50" /> {cluster.churchIds.length} Iglesias Vinculadas
                             </div>
 
                             <div className="space-y-4">
                                 <div className="flex justify-between items-end">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progreso del Líder</span>
-                                    <span className="text-sm font-black text-indigo-600">{Math.round(progress)}%</span>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progreso de Formación</span>
+                                    <span className={`text-base font-black ${isSelected ? 'text-royal' : 'text-slate-800'}`}>{Math.round(progress)}%</span>
                                 </div>
-                                <div className="h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                                <div className="h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-50 shadow-inner">
                                     <div 
-                                        className="h-full bg-indigo-600 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(79,70,229,0.3)]"
+                                        className={`h-full transition-all duration-1000 ease-out shadow-lg ${isSelected ? 'bg-royal' : 'bg-slate-400 group-hover:bg-royal'}`}
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
@@ -124,7 +129,7 @@ const ClustersPanel: React.FC<ClustersPanelProps> = ({
 
                             <button 
                                 onClick={() => onSelectCluster(cluster)}
-                                className={`w-full mt-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-slate-50 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                                className={`w-full mt-10 py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-3 transition-all transform active:scale-95 ${isSelected ? 'bg-royal text-white shadow-xl shadow-royal/20 glossy-finish' : 'bg-slate-50 text-slate-500 hover:bg-royal/5 hover:text-royal hover:shadow-lg'}`}
                             >
                                 Gestionar Iglesias <ChevronRight className="w-4 h-4" />
                             </button>

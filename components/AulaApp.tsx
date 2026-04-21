@@ -5,13 +5,13 @@ import { ExternalLink, GraduationCap, Sparkles, ShieldCheck } from 'lucide-react
 const AulaApp: React.FC = () => {
   return (
     <div className="w-full flex flex-col items-center py-10 animate-in fade-in slide-in-from-bottom-4 duration-700 font-sans">
-      <div className="max-w-2xl w-full bg-white rounded-[3rem] p-12 border border-slate-100 shadow-2xl text-center relative overflow-hidden group">
+      <div className="max-w-2xl w-full bg-white rounded-[3rem] p-12 border border-slate-100 shadow-2xl text-center relative overflow-hidden group subtle-shadow glossy-finish">
         {/* Elementos decorativos de fondo */}
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-50 rounded-full blur-3xl group-hover:bg-indigo-100 transition-colors duration-500" />
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-royal/5 rounded-full blur-3xl group-hover:bg-royal/10 transition-colors duration-500" />
         <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-slate-50 rounded-full blur-3xl group-hover:bg-slate-100 transition-colors duration-500" />
         
         <div className="relative z-10 flex flex-col items-center">
-          <div className="w-24 h-24 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-indigo-200 mb-8 transform group-hover:scale-110 transition-transform duration-500">
+          <div className="w-24 h-24 bg-royal rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-royal/30 mb-8 transform group-hover:scale-110 transition-all duration-500 glossy-finish">
             <GraduationCap className="w-12 h-12" />
           </div>
           
@@ -24,15 +24,15 @@ const AulaApp: React.FC = () => {
           </p>
 
           <div className="grid grid-cols-2 gap-4 w-full mb-10 text-left">
-            <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 hover:bg-white hover:shadow-lg transition-all duration-300">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm mb-3">
+            <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 hover:bg-white hover:subtle-shadow transition-all duration-300">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-royal shadow-sm mb-3">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div className="text-slate-800 font-black text-sm uppercase tracking-tight">Recursos Pro</div>
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Contenido exclusivo</div>
             </div>
-            <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 hover:bg-white hover:shadow-lg transition-all duration-300">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm mb-3">
+            <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 hover:bg-white hover:subtle-shadow transition-all duration-300">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-sea shadow-sm mb-3">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="text-slate-800 font-black text-sm uppercase tracking-tight">Acceso Seguro</div>
@@ -44,7 +44,7 @@ const AulaApp: React.FC = () => {
             href="https://aulaa-pfinal.vercel.app/" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-indigo-200 transition-all hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-3 active:scale-95"
+            className="w-full py-6 bg-royal hover:bg-royal/90 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-royal/30 transition-all hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-3 active:scale-95 glossy-finish"
           >
             Iniciar APP
             <ExternalLink className="w-5 h-5" />

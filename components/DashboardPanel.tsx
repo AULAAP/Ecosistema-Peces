@@ -48,30 +48,30 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, suffix = '', gradient
     
     return (
         <div 
-            className={`bg-gradient-to-br ${gradient} backdrop-blur-xl p-8 rounded-[2.5rem] shadow-xl border border-white/40 transform transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl flex flex-col justify-between overflow-hidden relative group`}
+            className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 transform transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl flex flex-col justify-between overflow-hidden relative group subtle-shadow glossy-finish"
             style={{ animationDelay: `${delay}ms` }}
         >
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/20 to-transparent pointer-events-none"></div>
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${gradient} opacity-5 blur-3xl -mr-16 -mt-16 group-hover:opacity-20 transition-opacity`}></div>
             
             <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                    <p className="text-slate-600/80 text-[10px] font-black uppercase tracking-widest">{title}</p>
-                    <div className="p-2 bg-white/50 rounded-xl text-slate-600">{icon}</div>
+                <div className="flex justify-between items-start mb-6">
+                    <div className="w-12 h-12 bg-slate-50 border border-slate-100/50 rounded-2xl flex items-center justify-center text-royal shadow-sm">
+                        {icon}
+                    </div>
+                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">{title}</p>
                 </div>
-                <div className="flex items-baseline">
-                    <span className="text-5xl font-black text-slate-800 tracking-tighter drop-shadow-sm">{displayValue}</span>
-                    <span className="text-xl font-bold text-slate-500 ml-1">{suffix}</span>
+                <div className="flex items-baseline mb-4">
+                    <span className="text-6xl font-black text-slate-800 tracking-tighter block animate-in slide-in-from-bottom-4 duration-1000">{displayValue}</span>
+                    <span className="text-2xl font-black text-slate-400 ml-1.5 uppercase tracking-tighter">{suffix}</span>
                 </div>
             </div>
             {description && (
-                <div className="mt-6 pt-6 border-t border-white/30 relative z-10">
-                    <div className="text-xs text-slate-700 leading-tight font-medium">
+                <div className="mt-8 pt-8 border-t border-slate-50 relative z-10">
+                    <div className="text-[11px] text-slate-600 leading-relaxed font-medium">
                         {description}
                     </div>
                 </div>
             )}
-            
-            <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
         </div>
     );
 };
@@ -100,20 +100,20 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ clusters, churches, chu
 
     const topChurch = churchPerformance[0];
     
-    let topChurchContent: React.ReactNode = <span className="italic text-slate-400 text-[10px]">Sin datos suficientes</span>;
+    let topChurchContent: React.ReactNode = <span className="text-slate-400 text-[9px] font-black uppercase tracking-widest">Sin registros activos</span>;
     
     if (topChurch && topChurch.count > 0) {
         const belongingCluster = clusters.find(c => c.churchIds.includes(topChurch.id));
         const clusterName = belongingCluster ? belongingCluster.name : "Sin Clúster";
         
         topChurchContent = (
-            <div className="flex flex-col gap-1">
-                <span className="font-bold text-slate-800 break-words" title={topChurch.name}>{topChurch.name}</span>
-                <div className="flex items-center flex-wrap gap-1 mt-1">
-                    <span className="px-1.5 py-0.5 rounded-md bg-white/40 text-[9px] font-black text-slate-500 uppercase border border-white/30">Cluster</span>
-                    <span className="text-[10px] font-bold text-indigo-600 break-words" title={clusterName}>
+            <div className="flex flex-col gap-2">
+                <span className="font-black text-slate-700 text-sm uppercase tracking-tighter leading-none" title={topChurch.name}>{topChurch.name}</span>
+                <div className="flex items-center gap-3">
+                    <span className="text-[9px] font-black text-royal py-1 px-2.5 bg-royal/5 rounded-lg uppercase tracking-widest">
                         {clusterName}
                     </span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-sea pulse"></div>
                 </div>
             </div>
         );
@@ -154,7 +154,7 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ clusters, churches, chu
         try {
             const canvas = await html2canvas(dashboardRef.current, {
                 scale: 2,
-                backgroundColor: '#f8fafc',
+                backgroundColor: '#FAFAFA',
                 useCORS: true,
                 logging: false,
                 windowWidth: dashboardRef.current.scrollWidth,
@@ -190,7 +190,7 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ clusters, churches, chu
             }
             
             const date = new Date().toLocaleDateString().replace(/\//g, '-');
-            pdf.save(`reporte-ecosistema-peces-${date}.pdf`);
+            pdf.save(`REPORTE-ACADEMICO-${date}.pdf`);
             
         } catch (error) {
             console.error("Error generando PDF:", error);
@@ -204,102 +204,108 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ clusters, churches, chu
     };
 
     return (
-        <div className="max-w-6xl mx-auto pb-12">
+        <div className="max-w-6xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             
-            <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 no-print">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8 no-print">
                 <div className="text-center md:text-left">
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Reporte General</h2>
-                    <p className="text-slate-500 mt-2 font-medium">Métricas de avance ministerial en tiempo real</p>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-royal/10 text-royal rounded-full text-[9px] font-black uppercase tracking-widest mb-4 border border-royal/10">
+                        Inteligencia de Datos
+                    </div>
+                    <h2 className="text-5xl font-black text-slate-800 tracking-tighter uppercase leading-none mb-3">Reporte General</h2>
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px]">Consolidado de avance ministerial y hito de formación</p>
                 </div>
                 
                 <button
                     onClick={handleDownloadPDF}
                     disabled={isGeneratingPdf}
-                    className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-white shadow-2xl transition-all
+                    className={`flex items-center gap-4 px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] text-white shadow-xl transition-all glossy-finish transform active:scale-95
                         ${isGeneratingPdf 
                             ? 'bg-slate-400 cursor-not-allowed' 
-                            : 'bg-slate-900 hover:bg-slate-800 hover:-translate-y-1 shadow-slate-900/20 active:scale-95'
+                            : 'bg-slate-800 hover:bg-slate-900 shadow-slate-900/20'
                         }`}
                 >
                     {isGeneratingPdf ? (
                         <>
                             <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
-                            <span>Generando PDF...</span>
+                            <span>GENERANDO...</span>
                         </>
                     ) : (
                         <>
                             <Download className="w-5 h-5" />
-                            <span>Descargar Reporte Completo</span>
+                            <span>DESCARGAR MEMORIA TÉCNICA</span>
                         </>
                     )}
                 </button>
             </div>
 
-            <div ref={dashboardRef} className="space-y-8 p-4 rounded-[3rem] transition-all">
+            <div ref={dashboardRef} className="space-y-10 transition-all">
                 {/* KPI Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     <StatCard 
-                        title="Total Clústers" 
+                        title="Zonas Operativas" 
                         value={clusters.length} 
-                        gradient="from-white to-indigo-50/50" 
-                        icon={<LayoutGrid className="w-5 h-5" />}
+                        gradient="from-royal to-indigo-600" 
+                        icon={<LayoutGrid className="w-6 h-6" />}
                     />
                     <StatCard 
-                        title="Total Iglesias" 
+                        title="Ecosistemas" 
                         value={churches.length} 
-                        gradient="from-white to-sky-50/50" 
+                        gradient="from-sea to-emerald-600" 
                         delay={100} 
-                        icon={<Users className="w-5 h-5" />}
+                        icon={<Users className="w-6 h-6" />}
                     />
                     <StatCard 
-                        title="Avance Global" 
+                        title="Meta Académica" 
                         value={globalProgressPercentage} 
                         suffix="%" 
-                        gradient="from-white to-emerald-50/50" 
+                        gradient="from-amber to-orange-500" 
                         delay={200} 
-                        icon={<TrendingUp className="w-5 h-5" />}
+                        icon={<TrendingUp className="w-6 h-6" />}
                     />
                     <StatCard 
-                        title="Iglesia Destacada" 
+                        title="Máxima Tracción" 
                         value={topChurch ? Math.round(topChurch.percentage) : 0} 
                         suffix="%" 
-                        gradient="from-white to-amber-50/50" 
+                        gradient="from-royal to-sky-600" 
                         delay={300} 
                         description={topChurchContent}
-                        icon={<Award className="w-5 h-5" />}
+                        icon={<Award className="w-6 h-6" />}
                     />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     {/* Rendimiento por Zona */}
-                    <div className="lg:col-span-2 bg-white/70 backdrop-blur-md rounded-[2.5rem] shadow-xl p-10 border border-white/50">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 border-b border-slate-100 pb-6 gap-4">
+                    <div className="lg:col-span-2 bg-white rounded-[3.5rem] shadow-sm p-12 border border-slate-100 subtle-shadow glossy-finish">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 border-b border-slate-50 pb-8 gap-6">
                             <div>
-                                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Rendimiento por Zona</h3>
-                                <p className="text-xs text-slate-400 mt-1 font-bold uppercase tracking-widest">Comparativa: Líder vs Promedio Iglesias</p>
+                                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Monitoreo Territorial</h3>
+                                <p className="text-[10px] text-slate-400 mt-2 font-black uppercase tracking-[0.2em]">Desbalance: Mentoría vs Aplicación Local</p>
                             </div>
-                            <div className="flex gap-6 text-[10px] font-black uppercase tracking-widest">
-                                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-indigo-600 shadow-lg shadow-indigo-200"></span> Líder</div>
-                                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-sky-400 shadow-lg shadow-sky-200"></span> Iglesias</div>
+                            <div className="flex gap-8 text-[9px] font-black uppercase tracking-widest">
+                                <div className="flex items-center gap-3"><span className="w-4 h-4 rounded-lg bg-royal shadow-md shadow-royal/20"></span> LÍDER ZONAL</div>
+                                <div className="flex items-center gap-3"><span className="w-4 h-4 rounded-lg bg-sea shadow-md shadow-sea/20"></span> IGLESIAS AVG</div>
                             </div>
                         </div>
                         
-                        <div className="space-y-10">
+                        <div className="space-y-12">
                             {clusterPerformance.map((cluster) => (
                                 <div key={cluster.id} className="group">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="font-black text-slate-700 text-sm uppercase tracking-tight">{cluster.name}</span>
-                                        <span className="text-[10px] font-black text-slate-400 bg-white/60 px-3 py-1 rounded-xl border border-white/50">{cluster.churchCount} Iglesias</span>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="flex items-center gap-4">
+                                           <div className="w-2 h-8 bg-royal/10 group-hover:bg-royal transition-colors rounded-full"></div>
+                                           <span className="font-black text-slate-800 text-lg uppercase tracking-tight">{cluster.name}</span>
+                                        </div>
+                                        <span className="text-[9px] font-black text-slate-400 bg-slate-50 px-3.5 py-1.5 rounded-xl border border-slate-100 uppercase tracking-widest">{cluster.churchCount} OPERATIVOS</span>
                                     </div>
-                                    <div className="relative h-10 w-full bg-slate-100/50 rounded-2xl overflow-hidden shadow-inner border border-slate-200/50">
+                                    <div className="relative h-12 w-full bg-slate-50 rounded-2xl overflow-hidden shadow-inner border border-slate-100">
                                         <div 
-                                            className="absolute top-0 left-0 h-full bg-sky-400/80 backdrop-blur-sm transition-all duration-1000 ease-out flex items-center justify-end px-4"
+                                            className="absolute top-0 left-0 h-full bg-sea transition-all duration-1000 ease-out flex items-center justify-end px-5 glossy-finish"
                                             style={{ width: `${Math.max(5, cluster.churchesAvgPercentage)}%` }}
                                         >
                                             {cluster.churchesAvgPercentage > 15 && <span className="text-[10px] font-black text-white">{Math.round(cluster.churchesAvgPercentage)}%</span>}
                                         </div>
                                         <div 
-                                            className="absolute top-1.5 bottom-1.5 left-1.5 h-auto bg-indigo-600 rounded-xl shadow-xl transition-all duration-1000 ease-out flex items-center justify-end px-4 border border-white/20"
+                                            className="absolute top-2 bottom-2 left-2 h-auto bg-royal rounded-xl shadow-xl transition-all duration-1000 ease-out flex items-center justify-end px-5 border border-white/10"
                                             style={{ width: `${Math.max(5, cluster.leaderPercentage)}%` }}
                                         >
                                             {cluster.leaderPercentage > 15 && <span className="text-[10px] font-black text-white">{Math.round(cluster.leaderPercentage)}%</span>}
@@ -307,38 +313,48 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ clusters, churches, chu
                                     </div>
                                 </div>
                             ))}
-                            {clusterPerformance.length === 0 && <div className="text-center text-slate-400 py-20 font-bold uppercase tracking-widest text-xs">No hay datos disponibles</div>}
+                            {clusterPerformance.length === 0 && (
+                                <div className="text-center py-24 flex flex-col items-center">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4"><Users className="text-slate-200" /></div>
+                                    <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-[10px]">Sin inteligencia territorial disponible</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Ranking Iglesias */}
-                    <div className="bg-white/70 backdrop-blur-md rounded-[2.5rem] shadow-xl p-10 border border-white/50 flex flex-col">
-                        <h3 className="text-xl font-black text-slate-800 mb-8 pb-6 border-b border-slate-100 uppercase tracking-tighter">Ranking Iglesias</h3>
-                        <div className="flex-grow overflow-y-auto max-h-[500px] pr-4 space-y-4 custom-scrollbar">
+                    <div className="bg-white rounded-[3.5rem] shadow-sm p-12 border border-slate-100 flex flex-col subtle-shadow glossy-finish">
+                        <div className="mb-10 pb-8 border-b border-slate-50">
+                             <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Cuadro de Honor</h3>
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Iglesias con mayor tracción</p>
+                        </div>
+                        <div className="flex-grow overflow-y-auto max-h-[550px] pr-2 space-y-5 custom-scrollbar">
                             {churchPerformance.map((church, index) => {
                                 const cluster = clusters.find(c => c.churchIds.includes(church.id));
                                 
                                 return (
-                                    <div key={church.id} className="flex items-center gap-4 p-4 rounded-3xl bg-white/40 hover:bg-white/80 transition-all duration-300 border border-transparent hover:border-white/60 hover:shadow-lg group">
+                                    <div key={church.id} className="flex items-center gap-5 p-6 rounded-[2rem] bg-white hover:bg-royal/[0.02] transition-all duration-500 border border-slate-50 hover:border-royal/20 group">
                                         <div className={`
-                                            w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-2xl font-black text-xs shadow-sm
-                                            ${index === 0 ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 text-white ring-4 ring-yellow-100' : 
-                                            index === 1 ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-white' : 
-                                            index === 2 ? 'bg-gradient-to-br from-orange-200 to-orange-400 text-white' : 'bg-slate-100 text-slate-400'}\n                                        `}>
+                                            w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl font-black text-sm shadow-sm transition-transform group-hover:scale-110
+                                            ${index === 0 ? 'bg-amber text-white shadow-xl shadow-amber/20' : 
+                                            index === 1 ? 'bg-royal text-white shadow-xl shadow-royal/20' : 
+                                            index === 2 ? 'bg-sea text-white shadow-xl shadow-sea/20' : 'bg-slate-50 text-slate-400'}\n                                        `}>
                                             {index + 1}
                                         </div>
                                         <div className="flex-grow min-w-0">
-                                            <p className="font-black text-sm text-slate-800 group-hover:text-indigo-700 transition-colors leading-tight break-words">{church.name}</p>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{cluster ? cluster.name : 'Sin Clúster'}</p>
+                                            <p className="font-black text-base text-slate-800 group-hover:text-royal transition-colors leading-tight break-words tracking-tight">{church.name}</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5">{cluster ? cluster.name : 'MISIÓN LIBRE'}</p>
                                         </div>
                                         <div className="text-right flex-shrink-0">
-                                            <span className="block text-base font-black text-indigo-600">{Math.round(church.percentage)}%</span>
+                                            <span className="block text-xl font-black text-royal tracking-tighter">{Math.round(church.percentage)}%</span>
                                         </div>
                                     </div>
                                 );
                             })}
                             {churchPerformance.length === 0 && (
-                                <div className="text-center text-slate-400 italic py-20 font-bold uppercase tracking-widest text-xs">Lista vacía</div>
+                                <div className="text-center py-24">
+                                     <p className="text-slate-300 font-black uppercase tracking-[0.2em] text-[9px]">Aún sin competidores</p>
+                                </div>
                             )}
                         </div>
                     </div>
